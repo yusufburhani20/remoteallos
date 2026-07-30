@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Remote Manager — Login</title>
+  <meta name="description" content="Sistem Manajemen Komputer Lab — Login Admin">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <!-- Background orbs -->
+    <div class="login-bg-orb orb1"></div>
+    <div class="login-bg-orb orb2"></div>
+
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">🖥️</div>
+        <h1>Lab Remote Manager</h1>
+        <p>Sistem Manajemen Komputer Lab</p>
+      </div>
+
+      <!-- Error message -->
+      <div id="login-error" class="login-error" style="display:none; margin-bottom:16px;">
+        ❌ Password salah. Coba lagi.
+      </div>
+
+      <form class="login-form" method="POST" action="/login" id="login-form">
+        <div class="input-group">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Password Admin"
+            autocomplete="current-password"
+            required
+            autofocus
+          >
+          <button type="button" class="input-toggle" id="toggle-pw" aria-label="Toggle password visibility">
+            👁
+          </button>
+        </div>
+        <button type="submit" class="btn-login" id="btn-login">
+          Masuk ke Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Show error if redirected with ?error=1
+    if (new URLSearchParams(location.search).get('error') === '1') {
+      document.getElementById('login-error').style.display = 'block';
+    }
+
+    // Toggle password visibility
+    document.getElementById('toggle-pw').addEventListener('click', () => {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+
+    // Loading state on submit
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      const btn = document.getElementById('btn-login');
+      btn.textContent = 'Memverifikasi...';
+      btn.disabled = true;
+    });
+  </script>
+</body>
+</html>

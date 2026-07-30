@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Remote Manager — Dashboard</title>
+  <meta name="description" content="Dashboard manajemen komputer lab">
+  <link rel="stylesheet" href="/assets/css/style.css?v=1.6.0">
+</head>
+<body>
+<div class="dashboard-layout">
+
+  <!-- ══════════ HEADER ══════════ -->
+  <header id="header">
+    <div class="header-logo">
+      <div class="header-logo-icon">🖥️</div>
+      Lab Remote Manager
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-pill total">
+        <div class="stat-dot"></div>
+        <span id="stat-total">0</span> PC Terdaftar
+      </div>
+      <div class="stat-pill online">
+        <div class="stat-dot"></div>
+        <span id="stat-online">0</span> Online
+      </div>
+      <div class="stat-pill offline">
+        <div class="stat-dot"></div>
+        <span id="stat-offline">0</span> Offline
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-warning" id="btn-lock-input-all" title="Kunci/Buka Input Keyboard & Mouse Seluruh PC Lab">
+        🔒 Kunci Input Semua
+      </button>
+      <button class="btn btn-ghost" id="btn-broadcast" title="Kirim pesan ke semua PC">
+        📢 Broadcast
+      </button>
+      <button class="btn btn-danger" id="btn-shutdown-all" title="Matikan semua PC">
+        ⏻ Shutdown Semua
+      </button>
+      <a href="/logout" class="btn btn-ghost">Keluar</a>
+    </div>
+  </header>
+
+  <!-- ══════════ TOOLBAR ══════════ -->
+  <div id="toolbar">
+    <div class="toolbar-search">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="search-input" placeholder="Cari nama PC...">
+    </div>
+
+    <div class="filter-group">
+      <button class="filter-btn active" data-filter="all">Semua</button>
+      <button class="filter-btn" data-filter="online">Online</button>
+      <button class="filter-btn" data-filter="offline">Offline</button>
+      <button class="filter-btn" data-filter="windows">Windows</button>
+      <button class="filter-btn" data-filter="linux">Ubuntu</button>
+    </div>
+
+    <div class="toolbar-right">
+      <span id="conn-status" style="font-size:12px; color: var(--text-muted);">⚪ Menghubungkan...</span>
+    </div>
+  </div>
+
+  <!-- ══════════ MAIN AREA ══════════ -->
+  <div id="main-area">
+
+    <!-- PC Grid -->
+    <div id="pc-grid-container">
+      <div id="pc-grid">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-state-icon">📡</div>
+          <h3>Belum ada PC terhubung</h3>
+          <p>Install agent di setiap PC lab, kemudian jalankan agar muncul di sini.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SIDE PANEL ══════════ -->
+    <div id="side-panel">
+      <div class="panel-header">
+        <div class="panel-status-dot" id="panel-status-dot"></div>
+        <div class="panel-pc-info">
+          <div class="panel-pc-name" id="panel-pc-name">—</div>
+          <div class="panel-pc-meta" id="panel-pc-meta">—</div>
+        </div>
+        <button class="panel-close" id="panel-close" title="Tutup panel & kembali ke dashboard (ESC)">✕ Tutup (ESC)</button>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel-actions">
+        <button class="btn btn-warning" id="btn-lock-input" title="Kunci/Buka Input Keyboard & Mouse Client">🔒 Kunci Input</button>
+        <button class="btn btn-ghost" id="btn-screenshot" title="Ambil screenshot">📸 Screenshot</button>
+        <button class="btn btn-ghost" id="btn-lock" title="Kunci layar">🔒 Lock OS</button>
+        <button class="btn btn-ghost" id="btn-restart" title="Restart PC">🔄 Restart</button>
+        <button class="btn btn-danger" id="btn-shutdown" title="Matikan PC">⏻ Shutdown</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="info">📊 Info</button>
+        <button class="tab-btn" data-tab="shell">💻 Shell</button>
+        <button class="tab-btn" data-tab="files">📁 Files</button>
+        <button class="tab-btn" data-tab="remote">🖥️ Remote</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div class="panel-content">
+
+        <!-- INFO TAB -->
+        <div class="tab-content active" id="tab-info">
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-card-label">CPU</div>
+              <div class="info-card-value" id="info-cpu">—%</div>
+              <div class="info-card-sub">Penggunaan prosesor</div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-label">RAM</div>
+              <div class="info-card-value" id="info-ram">—%</div>
+              <div class="info-card-sub" id="info-ram-sub">—</div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-label">Disk</div>
+              <div class="info-card-value" id="info-disk">—%</div>
+              <div class="info-card-sub" id="info-disk-sub">—</div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-label">Network Speed</div>
+              <div class="info-card-value" id="info-net" style="font-size:13px; font-family:monospace; color:#22c55e;">—</div>
+              <div class="info-card-sub" id="info-net-sub">Kecepatan Jaringan</div>
+            </div>
+            <div class="info-card full">
+              <div class="info-card-label">Aktivitas & Aplikasi Aktif</div>
+              <div id="info-app-container" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+                <div class="info-detail-row"><span class="key">Aplikasi Utama</span><span class="val" id="d-app-main" style="color:#f59e0b; font-weight:700;">—</span></div>
+                <div class="info-detail-row"><span class="key">Kecepatan Download</span><span class="val" id="d-net-down" style="color:#22c55e; font-weight:600;">—</span></div>
+                <div class="info-detail-row"><span class="key">Kecepatan Upload</span><span class="val" id="d-net-up" style="color:#3b82f6; font-weight:600;">—</span></div>
+                <div class="info-detail-row"><span class="key">Daftar Aplikasi Dibuka</span><span class="val" id="d-app-list">—</span></div>
+              </div>
+            </div>
+            <div class="info-card full">
+              <div class="info-card-label">Spesifikasi Sistem</div>
+              <div id="info-detail">
+                <div class="info-detail-row"><span class="key">Hostname</span><span class="val" id="d-hostname">—</span></div>
+                <div class="info-detail-row"><span class="key">IP Address</span><span class="val" id="d-ip">—</span></div>
+                <div class="info-detail-row"><span class="key">Sistem Operasi</span><span class="val" id="d-os">—</span></div>
+                <div class="info-detail-row"><span class="key">Arsitektur</span><span class="val" id="d-arch">—</span></div>
+                <div class="info-detail-row"><span class="key">Status Agent</span><span class="val" id="info-status">—</span></div>
+                <div class="info-detail-row"><span class="key">Update Terakhir</span><span class="val" id="info-lastseen">—</span></div>
+                <div class="info-detail-row"><span class="key">Terdaftar</span><span class="val" id="d-registered">—</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREENSHOT TAB -->
+        <!-- (accessible via btn-screenshot, shown in info area) -->
+
+        <!-- SHELL TAB -->
+        <div class="tab-content" id="tab-shell">
+          <div class="terminal-wrapper">
+            <div class="terminal-output" id="terminal-output">
+              <div class="terminal-line info">─── Remote Shell ─── Ketik perintah lalu tekan Enter ───</div>
+            </div>
+            <div class="terminal-input-row">
+              <span class="terminal-prompt" id="terminal-prompt">$</span>
+              <input
+                class="terminal-input"
+                id="terminal-input"
+                type="text"
+                placeholder="Ketik perintah..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- FILES TAB -->
+        <div class="tab-content" id="tab-files">
+          <div class="fm-toolbar">
+            <button class="btn btn-ghost" id="fm-up" title="Folder atas">⬆ Up</button>
+            <button class="btn btn-ghost" id="fm-drives" title="Lihat Semua Drive (C:\, D:\, E:\)">💾 Drives</button>
+            <div class="fm-path" id="fm-path">/</div>
+            <button class="btn btn-ghost" id="fm-refresh" title="Refresh">🔄</button>
+            <button class="btn btn-danger" id="fm-delete" title="Hapus item dipilih">🗑 Hapus</button>
+            <button class="btn btn-ghost" id="fm-download" title="Download file">⬇ Download</button>
+          </div>
+          <div class="fm-list" id="fm-list">
+            <div class="fm-empty">Pilih PC kemudian buka tab Files</div>
+          </div>
+        </div>
+
+        <!-- REMOTE DESKTOP TAB -->
+        <div class="tab-content" id="tab-remote">
+          <div class="vnc-wrapper">
+            <div class="vnc-controls">
+              <button class="btn btn-primary" id="vnc-connect">🖥️ Connect</button>
+              <button class="btn btn-ghost" id="vnc-disconnect" style="display:none">⏹ Disconnect</button>
+              <button class="btn btn-ghost" id="vnc-fullscreen">⛶ Fullscreen</button>
+              <button class="btn btn-ghost" id="vnc-ctrl-alt-del" title="Kirim Ctrl+Alt+Del">⌨️ C+A+D</button>
+              <button class="btn btn-primary" id="vnc-paste" title="Kirim Teks Clipboard dari PC Guru ke Client">📋 Paste Teks</button>
+            </div>
+            <div id="vnc-canvas-container">
+              <div class="vnc-placeholder" id="vnc-placeholder">
+                <span>🖥️</span>
+                <p>Menghubungkan ke remote desktop...</p>
+                <small style="color:var(--text-muted); font-size:11px; margin-top:4px;">
+                  Pastikan VNC Server aktif di PC target
+                </small>
+              </div>
+              <div id="vnc-screen" style="display:none; width:100%; height:100%;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-content -->
+    </div><!-- /side-panel -->
+  </div><!-- /main-area -->
+</div><!-- /dashboard-layout -->
+
+<!-- ══════════ TOAST CONTAINER ══════════ -->
+<div id="toast-container"></div>
+
+<!-- ══════════ BROADCAST MODAL ══════════ -->
+<div class="modal-overlay hidden" id="broadcast-modal">
+  <div class="modal">
+    <h3>📢 Broadcast Pesan ke Semua PC</h3>
+    <textarea id="broadcast-text" placeholder="Tulis pesan yang akan ditampilkan di semua PC..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="broadcast-cancel">Batal</button>
+      <button class="btn btn-primary" id="broadcast-send">Kirim ke Semua PC</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot Modal -->
+<div class="modal-overlay hidden" id="screenshot-modal">
+  <div class="modal" style="width:700px; max-width:95vw;">
+    <h3>📸 Screenshot — <span id="ss-pc-name"></span></h3>
+    <img id="ss-img" src="" style="width:100%; border-radius:8px; margin:12px 0;" alt="Screenshot">
+    <div style="font-size:11px; color:var(--text-muted)" id="ss-time"></div>
+    <div class="modal-actions">
+      <a class="btn btn-ghost" id="ss-download" download="screenshot.jpg">⬇ Download</a>
+      <button class="btn btn-ghost" id="ss-close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCRIPTS ══════════ -->
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<script src="/assets/js/terminal.js?v=1.6.0"></script>
+<script src="/assets/js/filemanager.js?v=1.6.0"></script>
+<script src="/assets/js/app.js?v=1.6.0"></script>
+</body>
+</html>

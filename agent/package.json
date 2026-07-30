@@ -1,0 +1,14 @@
+{
+  "name": "lab-remote-agent",
+  "version": "1.0.0",
+  "description": "Lab Remote Manager - PC Agent",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.4",
+    "systeminformation": "^5.22.2",
+    "screenshot-desktop": "^1.12.7"
+  }
+}

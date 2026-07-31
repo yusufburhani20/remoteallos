@@ -78,14 +78,17 @@ public class SmartInputLock {
         _bannerForm.Location = new Point(0, 0);
         _bannerForm.Size = new Size(Screen.PrimaryScreen.Bounds.Width, 75);
         _bannerForm.TopMost = true;
-        _bannerForm.BackColor = Color.FromArgb(220, 38, 38);
+        _bannerForm.BackColor = Color.Lime; // Transparency key
+        _bannerForm.TransparencyKey = Color.Lime;
+        _bannerForm.Opacity = 0.8;
 
         Label label = new Label();
         label.Text = "🔒 PERHATIAN: HAK AKSES CLIENT DIKUNCI OLEH ADMIN\nClient Dilarang Menggunakan PC | Remote Control Admin Aktif";
         label.Font = new Font("Segoe UI", 13, FontStyle.Bold);
-        label.ForeColor = Color.White;
+        label.ForeColor = Color.Red;
+        label.BackColor = Color.Black;
+        label.AutoSize = true;
         label.TextAlign = ContentAlignment.MiddleCenter;
-        label.Dock = DockStyle.Fill;
         _bannerForm.Controls.Add(label);
 
         _bannerForm.HandleCreated += (s, e) => {
@@ -99,7 +102,7 @@ public class SmartInputLock {
     private static IntPtr KHookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
         if (nCode >= 0) {
             KBDLLHOOKSTRUCT k = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
-            bool isInjected = ((k.flags & 0x10) != 0) || (k.dwExtraInfo != IntPtr.Zero);
+            bool isInjected = ((k.flags & 0x10) != 0);
             if (!isInjected) {
                 return (IntPtr)1; // Block physical keyboard press from client
             }
@@ -110,7 +113,7 @@ public class SmartInputLock {
     private static IntPtr MHookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
         if (nCode >= 0) {
             MSLLHOOKSTRUCT m = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
-            bool isInjected = ((m.flags & 0x01) != 0) || (m.dwExtraInfo != IntPtr.Zero);
+            bool isInjected = ((m.flags & 0x01) != 0);
             if (!isInjected) {
                 return (IntPtr)1; // Block physical mouse input from client
             }

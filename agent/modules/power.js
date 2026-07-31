@@ -19,7 +19,7 @@ const COMMANDS = {
   linux: {
     shutdown: 'shutdown -h now',
     restart:  'reboot',
-    lock:     'loginctl lock-session 2>/dev/null || xdg-screensaver lock 2>/dev/null || gnome-screensaver-command -l',
+    lock:     'loginctl lock-sessions 2>/dev/null || xdg-screensaver lock 2>/dev/null || gnome-screensaver-command -l',
     logoff:   'pkill -u $(whoami) -KILL',
     sleep:    'systemctl suspend',
   },
@@ -41,38 +41,6 @@ function executePowerAction(action) {
 
   if (IS_WINDOWS && action === 'lock') {
     console.log('[Power] Locking active Windows user session...');
-    const psScript = `
-$code = @'
-using System;
-using System.Runtime.InteropServices;
-
-public class SessionLocker {
-    [DllImport("kernel32.dll")]
-    public static extern uint WTSGetActiveConsoleSessionId();
-
-    [DllImport("wtsapi32.dll", SetLastError = true)]
-    public static extern bool WTSDisconnectSession(IntPtr hServer, uint sessionId, bool bWait);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool LockWorkStation();
-
-    public static void Lock() {
-        uint sid = WTSGetActiveConsoleSessionId();
-        if (sid != 0xFFFFFFFF) {
-            WTSDisconnectSession(IntPtr.Zero, sid, false);
-        }
-        LockWorkStation();
-    }
-}
-'@
-
-Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
-[SessionLocker]::Lock()
-`;
-    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
-    exec(`powershell -NonInteractive -NoProfile -EncodedCommand ${encoded}`);
-
-    // Fallback
     const sys32 = process.env.SystemRoot ? `${process.env.SystemRoot}\\System32` : 'C:\\Windows\\System32';
     exec(`"${sys32}\\tsdiscon.exe"`);
     exec(`"${sys32}\\rundll32.exe" user32.dll,LockWorkStation`);
@@ -108,6 +76,12 @@ function setBlockInput(block) {
     } else {
       hideLockBanner();
     }
+  } else {
+    if (isInputBlocked) {
+      showLinuxLockBanner();
+    } else {
+      hideLinuxLockBanner();
+    }
   }
   return { success: true, isInputBlocked };
 }
@@ -116,15 +90,11 @@ function showLockBanner() {
   hideLockBanner();
   try {
     const lockScript = path.join(__dirname, '..', 'lock_worker.ps1');
-    overlayProcess = spawn('powershell.exe', [
-      '-NonInteractive',
-      '-NoProfile',
-      '-ExecutionPolicy', 'Bypass',
-      '-File', lockScript
-    ], {
-      detached: false,
-      stdio: 'ignore'
+    overlayProcess = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', lockScript], {
+      detached: true,
+      windowsHide: true
     });
+    overlayProcess.unref();
   } catch (err) {
     console.error('[Power] Failed to spawn lock_worker.ps1:', err.message);
   }
@@ -136,9 +106,45 @@ function hideLockBanner() {
     overlayProcess = null;
   }
   if (IS_WINDOWS) {
-    exec('taskkill /F /FI "WINDOWTITLE eq Lab Manager Lock Banner" 2>nul', () => {});
-    exec('wmic process where "commandline like \'%lock_worker.ps1%\'" call terminate 2>nul', () => {});
+    exec('powershell -Command "Get-Process powershell | Where-Object { $_.CommandLine -match \'lock_worker.ps1\' } | Stop-Process -Force" 2>nul', () => {});
   }
+}
+
+function showLinuxLockBanner() {
+  hideLinuxLockBanner();
+  const script = `
+  USER_PID=$(pgrep -f "gnome-session|xfce4-session|lxsession|mate-session|gnome-shell" | head -n 1)
+  if [ -n "$USER_PID" ]; then
+    export DISPLAY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^DISPLAY=' | cut -d= -f2)
+    export XAUTHORITY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^XAUTHORITY=' | cut -d= -f2)
+  fi
+  [ -z "$DISPLAY" ] && export DISPLAY=:0
+  [ -z "$XAUTHORITY" ] && export XAUTHORITY=$(find /run/user -name "Xauthority" -print -quit 2>/dev/null || find /home -maxdepth 2 -name ".Xauthority" -print -quit 2>/dev/null)
+  
+  ids=$(xinput list 2>/dev/null | grep -v "Virtual core" | grep -Eo "id=[0-9]+" | cut -d= -f2)
+  for id in $ids; do xinput disable $id 2>/dev/null; done
+  
+  # Try to show a banner if zenity is available
+  zenity --info --title="Lab Manager Admin" --text="🔒 PERHATIAN: HAK AKSES CLIENT DIKUNCI OLEH ADMIN\n\nClient Dilarang Menggunakan PC | Remote Control Admin Aktif" --width=500 --timeout=86400 2>/dev/null &
+  `;
+  exec(script, { shell: '/bin/bash' });
+}
+
+function hideLinuxLockBanner() {
+  const script = `
+  USER_PID=$(pgrep -f "gnome-session|xfce4-session|lxsession|mate-session|gnome-shell" | head -n 1)
+  if [ -n "$USER_PID" ]; then
+    export DISPLAY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^DISPLAY=' | cut -d= -f2)
+    export XAUTHORITY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^XAUTHORITY=' | cut -d= -f2)
+  fi
+  [ -z "$DISPLAY" ] && export DISPLAY=:0
+  [ -z "$XAUTHORITY" ] && export XAUTHORITY=$(find /run/user -name "Xauthority" -print -quit 2>/dev/null || find /home -maxdepth 2 -name ".Xauthority" -print -quit 2>/dev/null)
+  
+  ids=$(xinput list 2>/dev/null | grep -v "Virtual core" | grep -Eo "id=[0-9]+" | cut -d= -f2)
+  for id in $ids; do xinput enable $id 2>/dev/null; done
+  killall zenity 2>/dev/null
+  `;
+  exec(script, { shell: '/bin/bash' });
 }
 
 function isBlocked() {

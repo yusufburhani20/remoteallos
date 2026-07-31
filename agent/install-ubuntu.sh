@@ -1,116 +1,97 @@
 #!/bin/bash
-# Lab Remote Manager — PC Agent Installer (Ubuntu/Linux)
-# Run as root: sudo bash install-ubuntu.sh --server-url "http://192.168.1.100:3000"
+# install-ubuntu.sh
+# Script Instalasi Lab Remote Agent (1-Click) untuk Ubuntu via GitHub
 
-set -e
-
-# ─── Parse arguments ──────────────────────────────────────────
-SERVER_URL="http://192.168.1.100:3000"
+# ==========================================
+# KONFIGURASI SERVER
+# ==========================================
+if [ -z "$SERVER_URL" ]; then
+    SERVER_URL="http://192.168.1.33:3000"
+fi
 INSTALL_DIR="/opt/lab-agent"
-SERVICE_NAME="lab-remote-agent"
+GITHUB_BASE="https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent"
 
-while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    --server-url) SERVER_URL="$2"; shift ;;
-    --install-dir) INSTALL_DIR="$2"; shift ;;
-    *) echo "Unknown param: $1"; exit 1 ;;
-  esac
-  shift
-done
-
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║   Lab Remote Agent — Ubuntu Installer    ║"
-echo "╚══════════════════════════════════════════╝"
+echo -e "\e[36m=========================================\e[0m"
+echo -e "\e[36m  Lab Remote Agent - Ubuntu Installer\e[0m"
+echo -e "\e[36m=========================================\e[0m"
 echo ""
 
-# ─── Check root ───────────────────────────────────────────────
-if [ "$(id -u)" != "0" ]; then
-  echo "❌ Jalankan sebagai root: sudo bash $0"
+# Memastikan dijalankan sebagai root (sudo)
+if [ "$EUID" -ne 0 ]; then
+  echo -e "\e[31m[ERROR] Harap jalankan script ini dengan sudo!\e[0m"
+  echo "Gunakan: curl -sL $GITHUB_BASE/install-ubuntu.sh | sudo bash"
   exit 1
 fi
 
-# ─── Check Node.js ────────────────────────────────────────────
-if ! command -v node &>/dev/null; then
-  echo "📦 Node.js tidak ditemukan. Menginstall via NodeSource..."
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
+echo -e "\e[33m[1/6] Menghentikan service lama (jika ada)...\e[0m"
+systemctl stop lab-remote-agent 2>/dev/null
+systemctl disable lab-remote-agent 2>/dev/null
+rm -rf $INSTALL_DIR
+
+echo -e "\e[33m[2/6] Menginstal dependensi sistem (nodejs, npm, xinput, zenity, scrot)...\e[0m"
+apt-get update -y > /dev/null 2>&1
+apt-get install -y curl xinput zenity scrot > /dev/null 2>&1
+
+# Pastikan Node.js terinstal
+if ! command -v node &> /dev/null; then
+    echo "  -> Menginstal Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - > /dev/null 2>&1
+    apt-get install -y nodejs > /dev/null 2>&1
 fi
-NODE_VER=$(node --version)
-echo "✅ Node.js: $NODE_VER"
 
-# ─── Install screenshot dependencies ──────────────────────────
-echo "📦 Menginstall dependensi screenshot..."
-apt-get install -y scrot libxi6 libxtst6 libx11-dev libxkbfile-dev 2>/dev/null || true
+echo -e "\e[33m[3/6] Menyiapkan direktori & Mengunduh file dari GitHub...\e[0m"
+mkdir -p $INSTALL_DIR/modules
 
-# ─── Copy files ───────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "📁 Menyalin file ke: $INSTALL_DIR"
-mkdir -p "$INSTALL_DIR"
-cp -r "$SCRIPT_DIR"/. "$INSTALL_DIR/"
-
-# ─── Write config ─────────────────────────────────────────────
-cat > "$INSTALL_DIR/config.js" <<EOF
-module.exports = {
-  SERVER_URL: '$SERVER_URL',
-};
+# Membuat config.js
+cat > $INSTALL_DIR/config.js << EOF
+module.exports = { SERVER_URL: process.env.SERVER_URL || '$SERVER_URL' };
 EOF
-echo "✅ Config: SERVER_URL = $SERVER_URL"
 
-# ─── Install npm dependencies ─────────────────────────────────
-echo "📦 Menginstall npm dependencies..."
-cd "$INSTALL_DIR"
-npm install --omit=dev 2>/dev/null
-echo "✅ Dependencies terinstall"
+FILES=(
+    "index.js"
+    "package.json"
+    "modules/fileManager.js"
+    "modules/metrics.js"
+    "modules/power.js"
+    "modules/screenshot.js"
+    "modules/shell.js"
+)
 
-# ─── Create systemd service ───────────────────────────────────
-echo "⚙️  Membuat systemd service..."
+for file in "${FILES[@]}"; do
+    echo "  -> Mengunduh $file..."
+    curl -sL "$GITHUB_BASE/$file" -o "$INSTALL_DIR/$file"
+done
 
-cat > /etc/systemd/system/${SERVICE_NAME}.service <<EOF
+echo -e "\e[33m[4/6] Menginstal dependensi NPM...\e[0m"
+cd $INSTALL_DIR
+npm install --silent
+
+echo -e "\e[33m[5/6] Mengkonfigurasi Systemd Service (Background Daemon)...\e[0m"
+cat > /etc/systemd/system/lab-remote-agent.service << EOF
 [Unit]
-Description=Lab Remote Manager Agent
-After=network.target graphical-session.target
-Wants=network.target
+Description=Lab Remote Control Agent
+After=network.target
 
 [Service]
 Type=simple
-ExecStart=$(which node) ${INSTALL_DIR}/index.js
-WorkingDirectory=${INSTALL_DIR}
-Restart=always
-RestartSec=5
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/$(logname 2>/dev/null || echo user)/.Xauthority
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=${SERVICE_NAME}
+User=root
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$(which node) index.js
+Restart=on-failure
+Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# ─── Enable & start service ───────────────────────────────────
+echo -e "\e[33m[6/6] Menyalakan Lab Remote Agent...\e[0m"
 systemctl daemon-reload
-systemctl enable "$SERVICE_NAME"
-systemctl start  "$SERVICE_NAME"
-
-sleep 2
-STATUS=$(systemctl is-active "$SERVICE_NAME")
+systemctl enable lab-remote-agent
+systemctl start lab-remote-agent
 
 echo ""
-if [ "$STATUS" = "active" ]; then
-  echo "✅ Agent berjalan! (status: $STATUS)"
-else
-  echo "⚠️  Agent mungkin belum berjalan. Cek log:"
-  echo "   journalctl -u $SERVICE_NAME -f"
-fi
-
-echo ""
-echo "✅ Instalasi selesai!"
-echo "   Server: $SERVER_URL"
-echo ""
-echo "Perintah berguna:"
-echo "  Status  : systemctl status $SERVICE_NAME"
-echo "  Log     : journalctl -u $SERVICE_NAME -f"
-echo "  Stop    : systemctl stop $SERVICE_NAME"
-echo "  Uninstall: systemctl disable $SERVICE_NAME && rm /etc/systemd/system/${SERVICE_NAME}.service"
-echo ""
+echo -e "\e[32m=========================================\e[0m"
+echo -e "\e[32m INSTALASI BERHASIL! \e[0m"
+echo -e "\e[32m PC ini sekarang sudah bisa diremote\e[0m"
+echo -e "\e[32m dari Dashboard Server.\e[0m"
+echo -e "\e[32m=========================================\e[0m"

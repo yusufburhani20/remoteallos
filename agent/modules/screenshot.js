@@ -1,57 +1,48 @@
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const os = require('os');
+const path = require('path');
 
 const IS_WINDOWS = os.platform() === 'win32';
 let latestThumbnail = null;
 let workerProc = null;
 
 function startThumbnailWorker() {
-  if (!IS_WINDOWS || workerProc) return;
+  if (workerProc) return;
 
-  const psCode = `
-Add-Type -AssemblyName System.Drawing, System.Windows.Forms
-while ($true) {
-  try {
-    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-    $bmp = New-Object System.Drawing.Bitmap($b.Width, $b.Height)
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-    $ms = New-Object System.IO.MemoryStream
-    $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Jpeg)
-    $b64 = [Convert]::ToBase64String($ms.ToArray())
-    [Console]::WriteLine("SHOT:" + $b64)
-    $g.Dispose()
-    $bmp.Dispose()
-    $ms.Dispose()
-  } catch {}
-  Start-Sleep -Seconds 3
-}
-`;
-
-  try {
-    const encoded = Buffer.from(psCode, 'utf16le').toString('base64');
-    workerProc = spawn('powershell.exe', ['-NonInteractive', '-NoProfile', '-EncodedCommand', encoded]);
-
-    let buffer = '';
-    workerProc.stdout.on('data', (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('SHOT:')) {
-          latestThumbnail = trimmed.substring(5);
+  if (IS_WINDOWS) {
+    try {
+      const screenshot = require('screenshot-desktop');
+      const captureWin = async () => {
+        try {
+          const imgBuffer = await screenshot({ format: 'jpg' });
+          latestThumbnail = imgBuffer.toString('base64');
+        } catch (e) {
+          // console.error('[ScreenshotWorker] Error:', e.message);
         }
-      }
-    });
-
-    workerProc.on('exit', () => {
-      workerProc = null;
-      setTimeout(startThumbnailWorker, 5000);
-    });
-  } catch (err) {
-    console.error('[ScreenshotWorker] Error:', err.message);
+        setTimeout(captureWin, 3000);
+      };
+      captureWin();
+    } catch (err) {
+      console.error('[ScreenshotWorker] Failed to load screenshot-desktop:', err.message);
+    }
+  } else {
+    // Linux / Ubuntu screenshot worker using scrot + dynamic XAUTHORITY & DISPLAY
+    const captureLinux = () => {
+      const tmpPath = path.join(os.tmpdir(), 'lab_thumb.jpg');
+      const shellCmd = `
+        AUTH=$(find /run/user /var/run/gdm3 /home /root -name Xauthority 2>/dev/null | head -n 1)
+        DISP=$(w -h 2>/dev/null | awk '{print $2}' | grep -E '^:[0-9]' | head -n 1)
+        [ -z "$DISP" ] && DISP=":0"
+        XAUTHORITY="$AUTH" DISPLAY="$DISP" scrot -z -q 25 -o "${tmpPath}" 2>/dev/null && base64 -w 0 "${tmpPath}"
+      `;
+      exec(shellCmd, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
+        if (!err && stdout && stdout.length > 100) {
+          latestThumbnail = stdout.trim();
+        }
+        setTimeout(captureLinux, 3000);
+      });
+    };
+    captureLinux();
   }
 }
 
@@ -72,8 +63,7 @@ function takeScreenshot() {
   });
 }
 
-if (IS_WINDOWS) {
-  startThumbnailWorker();
-}
+startThumbnailWorker();
 
 module.exports = { takeScreenshot, getLatestThumbnail, startThumbnailWorker };
+

@@ -9,7 +9,11 @@ if [ -z "$SERVER_URL" ]; then
     SERVER_URL="https://remote.nusambasingaparna.com"
 fi
 INSTALL_DIR="/opt/lab-agent"
-GITHUB_BASE="https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent"
+
+# Get latest commit hash to bust CDN cache
+LATEST_HASH=$(curl -s "https://api.github.com/repos/yusufburhani20/remoteallos/commits/main" | grep -m 1 '"sha"' | cut -d '"' -f 4)
+if [ -z "$LATEST_HASH" ]; then LATEST_HASH="main"; fi
+GITHUB_BASE="https://raw.githubusercontent.com/yusufburhani20/remoteallos/$LATEST_HASH/agent"
 
 echo -e "\e[36m=========================================\e[0m"
 echo -e "\e[36m  Lab Remote Agent - Ubuntu Installer\e[0m"

@@ -10,7 +10,12 @@ if (-not $ServerUrl) {
     $ServerUrl = "https://remote.nusambasingaparna.com"
 }
 $InstallDir = "C:\lab-agent"
-$GithubBase = "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent"
+
+Write-Host "[4/6] Mengunduh file dari GitHub..." -ForegroundColor Yellow
+$commitApi = Invoke-RestMethod -Uri "https://api.github.com/repos/yusufburhani20/remoteallos/commits/main"
+$latestHash = $commitApi.sha
+if (-not $latestHash) { $latestHash = "main" }
+$GithubBase = "https://raw.githubusercontent.com/yusufburhani20/remoteallos/$latestHash/agent"
 
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "  Lab Remote Agent - Windows Installer" -ForegroundColor Cyan

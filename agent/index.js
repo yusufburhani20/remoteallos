@@ -7,6 +7,7 @@
 
 const { io }         = require('socket.io-client');
 const os             = require('os');
+const net            = require('net');
 const config         = require('./config');
 const { getMetrics } = require('./modules/metrics');
 const { executeCommand }           = require('./modules/shell');
@@ -127,16 +128,57 @@ function connect() {
     socket.emit('screenshot_result', { ...result, requestId, pcId: HOSTNAME.toUpperCase() });
   });
 
-  // ── Power Control ──────────────────────────────────────────
+  // ─── Power Control ────────────────────────────────────────────────────────────
   socket.on('power', ({ action }) => {
     console.log(`[Power] ${action}`);
     executePowerAction(action);
   });
 
-  // ── Notification ───────────────────────────────────────────
+  // ─── Notification ─────────────────────────────────────────────────────────────
   socket.on('show_notification', ({ message }) => {
     console.log(`[Notify] ${message}`);
     showNotification(message);
+  });
+
+  // ─── REVERSE TUNNEL VNC ─────────────────────────────────────────────────────
+  let vncSocket = null;
+  socket.on('vnc-start', () => {
+    console.log('[VNC] Starting local Reverse Tunnel to port 5900...');
+    if (vncSocket) vncSocket.destroy();
+    
+    vncSocket = net.createConnection({ port: 5900, host: '127.0.0.1' });
+    
+    vncSocket.on('connect', () => {
+      console.log('[VNC] Local socket connected');
+    });
+
+    vncSocket.on('data', (data) => {
+      socket.emit('vnc-agent-data', data);
+    });
+
+    vncSocket.on('close', () => {
+      console.log('[VNC] Local socket closed');
+      socket.emit('vnc-agent-closed');
+      vncSocket = null;
+    });
+
+    vncSocket.on('error', (err) => {
+      console.error('[VNC] Local error:', err.message);
+    });
+  });
+
+  socket.on('vnc-browser-data', (data) => {
+    if (vncSocket && !vncSocket.destroyed) {
+      vncSocket.write(data);
+    }
+  });
+
+  socket.on('vnc-stop', () => {
+    console.log('[VNC] Stopping Reverse Tunnel');
+    if (vncSocket) {
+      vncSocket.destroy();
+      vncSocket = null;
+    }
   });
 }
 

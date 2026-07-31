@@ -1,4 +1,5 @@
 const pcRegistry = require('../store/pcRegistry');
+const agentSockets = require('../store/agentSockets');
 
 /**
  * Setup handlers for lab PC agents connecting via Socket.IO /agent namespace
@@ -23,6 +24,7 @@ function setupAgentHandlers(agentIO, adminIO) {
       });
 
       socket.pcId = pcId;
+      agentSockets.set(pcId, socket);
 
       console.log(`[✓] Registered: ${pc.hostname} | ${pc.os} | ${pc.ip}`);
 
@@ -61,6 +63,7 @@ function setupAgentHandlers(agentIO, adminIO) {
     // ─── DISCONNECT ───────────────────────────────────────────────
     socket.on('disconnect', (reason) => {
       if (socket.pcId) {
+        agentSockets.remove(socket.pcId);
         const pc = pcRegistry.getPC(socket.pcId);
         pcRegistry.markOffline(socket.pcId);
         console.log(`[-] Agent offline: ${pc?.hostname || socket.pcId} (${reason})`);

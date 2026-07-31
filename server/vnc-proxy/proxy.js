@@ -1,16 +1,12 @@
 const WebSocket = require('ws');
-const net = require('net');
 const pcRegistry = require('../store/pcRegistry');
+const agentSockets = require('../store/agentSockets');
 
 /**
- * VNC WebSocket Proxy (websockify equivalent in Node.js)
+ * VNC WebSocket Proxy (Reverse Tunneling via Socket.IO)
  *
  * When an admin requests remote desktop for a PC:
- *   Browser (noVNC) <--WS--> This Proxy <--TCP--> VNC Server on lab PC
- *
- * VNC server must be running on port 5900 on each lab PC.
- *
- * Path format: /vnc/<pcId>
+ *   Browser (noVNC) <--WS--> This Proxy <--Socket.io--> Agent <--TCP--> VNC Server on lab PC
  */
 function setupVncProxy(httpServer) {
   const wss = new WebSocket.Server({ noServer: true });
@@ -24,7 +20,6 @@ function setupVncProxy(httpServer) {
         wss.emit('connection', ws, request);
       });
     }
-    // All other upgrades (Socket.IO) are handled by Socket.IO itself
   });
 
   wss.on('connection', (ws, req) => {
@@ -32,44 +27,45 @@ function setupVncProxy(httpServer) {
     const pcId = decodeURIComponent(url.pathname.split('/vnc/')[1] || '').toUpperCase();
 
     const pc = pcRegistry.getPC(pcId);
+    const agentSocket = agentSockets.get(pcId);
 
-    if (!pc || pc.status !== 'online' || !pc.ip) {
-      console.warn(`[VNC] Rejected: PC "${pcId}" not found or offline`);
+    if (!pc || pc.status !== 'online' || !agentSocket) {
+      console.warn(`[VNC] Rejected: PC "${pcId}" not found, offline, or agent socket missing`);
       ws.close(4000, 'PC not found or offline');
       return;
     }
 
-    const vncHost = pc.ip;
-    const vncPort = 5900;
+    console.log(`[VNC] Starting Reverse Tunnel for ${pc.hostname}`);
 
-    console.log(`[VNC] Connecting to ${pc.hostname} at ${vncHost}:${vncPort}`);
+    // Tell agent to start local VNC connection
+    agentSocket.emit('vnc-start');
 
-    const tcpSocket = net.createConnection({ host: vncHost, port: vncPort });
-
-    tcpSocket.on('connect', () => {
-      console.log(`[VNC] ✓ Connected to ${pc.hostname}`);
-    });
-
-    // VNC → browser
-    tcpSocket.on('data', (data) => {
+    // Agent -> Browser
+    const onVncAgentData = (data) => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data, { binary: true }, (err) => {
-          if (err) tcpSocket.destroy();
-        });
+        ws.send(data, { binary: true });
       }
-    });
+    };
+    
+    const onVncAgentClosed = () => {
+      console.log(`[VNC] Tunnel closed by Agent (${pc.hostname})`);
+      if (ws.readyState === WebSocket.OPEN) ws.close();
+    };
 
-    // browser → VNC
+    agentSocket.on('vnc-agent-data', onVncAgentData);
+    agentSocket.on('vnc-agent-closed', onVncAgentClosed);
+
+    // Browser -> Agent
     ws.on('message', (data) => {
-      if (!tcpSocket.destroyed) {
-        tcpSocket.write(Buffer.isBuffer(data) ? data : Buffer.from(data));
-      }
+      agentSocket.emit('vnc-browser-data', data);
     });
 
     // Cleanup
     const cleanup = (source) => {
       console.log(`[VNC] Disconnected from ${pc.hostname} (${source})`);
-      if (!tcpSocket.destroyed) tcpSocket.destroy();
+      agentSocket.emit('vnc-stop');
+      agentSocket.off('vnc-agent-data', onVncAgentData);
+      agentSocket.off('vnc-agent-closed', onVncAgentClosed);
       if (ws.readyState === WebSocket.OPEN) ws.close();
     };
 
@@ -78,20 +74,9 @@ function setupVncProxy(httpServer) {
       console.error(`[VNC] WS error (${pc.hostname}):`, err.message);
       cleanup('ws-error');
     });
-
-    tcpSocket.on('close', () => {
-      if (ws.readyState === WebSocket.OPEN) ws.close();
-    });
-
-    tcpSocket.on('error', (err) => {
-      console.error(`[VNC] TCP error (${pc.hostname}):`, err.message);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close(4001, `VNC connection failed: ${err.message}`);
-      }
-    });
   });
 
-  console.log('✓ VNC WebSocket proxy initialized');
+  console.log('✓ VNC WebSocket Reverse Tunnel initialized');
 }
 
 module.exports = { setupVncProxy };

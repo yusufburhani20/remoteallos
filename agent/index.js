@@ -51,6 +51,7 @@ function connect() {
     reconnectionDelay:   3000,
     reconnectionDelayMax: 15000,
     timeout:             10000,
+    rejectUnauthorized:  false
   });
 
   // ── Connected ──────────────────────────────────────────────

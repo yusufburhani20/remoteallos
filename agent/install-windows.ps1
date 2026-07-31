@@ -56,16 +56,19 @@ foreach ($file in $files) {
 
 # 4. Instalasi VNC Server (Untuk Fitur Remote)
 Write-Host "[4/7] Menginstal VNC Server..." -ForegroundColor Yellow
-$vncProcess = Get-Process -Name "tvnserver" -ErrorAction SilentlyContinue
-if (-not $vncProcess) {
+$vncExe = "C:\Program Files\TightVNC\tvnserver.exe"
+if (-not (Test-Path $vncExe)) {
     Write-Host "  -> Mengunduh TightVNC..." -ForegroundColor Gray
     Invoke-WebRequest -Uri "$GithubBase/tightvnc.msi" -OutFile "$InstallDir\tightvnc.msi"
     Write-Host "  -> Memasang TightVNC..." -ForegroundColor Gray
     Start-Process "msiexec.exe" -ArgumentList "/i `"$InstallDir\tightvnc.msi`" /quiet /norestart SET_USEVNCAUTHENTICATION=1 VALUE_OF_USEVNCAUTHENTICATION=1 SET_PASSWORD=1 VALUE_OF_PASSWORD=labpassword SET_USECONTROLAUTHENTICATION=1 VALUE_OF_USECONTROLAUTHENTICATION=1 SET_CONTROLPASSWORD=1 VALUE_OF_CONTROLPASSWORD=labpassword" -Wait -NoNewWindow
-    Start-Process -FilePath "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-install" -WindowStyle Hidden -Wait
-    Start-Process -FilePath "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-start" -WindowStyle Hidden
+    if (Test-Path $vncExe) {
+        Start-Process -FilePath $vncExe -ArgumentList "-install" -WindowStyle Hidden -Wait
+        Start-Process -FilePath $vncExe -ArgumentList "-start" -WindowStyle Hidden
+    }
 } else {
-    Write-Host "  -> VNC Server sudah terpasang dan berjalan." -ForegroundColor Gray
+    Write-Host "  -> VNC Server sudah terpasang, menyalakan layanan..." -ForegroundColor Gray
+    Start-Process -FilePath $vncExe -ArgumentList "-start" -WindowStyle Hidden
 }
 
 # 5. Instalasi modul (npm install)

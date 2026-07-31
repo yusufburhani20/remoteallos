@@ -152,11 +152,12 @@ function connect() {
     if (localTcp) localTcp.destroy();
     if (agentWs) agentWs.close();
 
-    const wsProtocol = config.SERVER_URL.startsWith('https') ? 'wss' : 'ws';
-    const serverHost = config.SERVER_URL.replace(/^https?:\/\//, '');
-    const wsUrl = `${wsProtocol}://${serverHost}/agent-vnc/${token}`;
+    const serverUrl = new URL(config.SERVER_URL);
+    serverUrl.protocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    serverUrl.pathname = `/agent-vnc/${token}`;
+    const wsUrl = serverUrl.toString();
     
-    agentWs = new WebSocket(wsUrl);
+    agentWs = new WebSocket(wsUrl, { rejectUnauthorized: false });
     localTcp = net.createConnection({ port: 5900, host: '127.0.0.1' });
 
     localTcp.on('connect', () => {

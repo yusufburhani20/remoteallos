@@ -18,12 +18,13 @@ function setupVncProxy(httpServer) {
   // Intercept HTTP upgrade requests
   httpServer.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
+    const pathname = url.pathname.replace(/\/+/g, '/');
 
-    if (url.pathname.startsWith('/vnc/')) {
+    if (pathname.startsWith('/vnc/')) {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
-    } else if (url.pathname.startsWith('/agent-vnc/')) {
+    } else if (pathname.startsWith('/agent-vnc/')) {
       wssAgent.handleUpgrade(request, socket, head, (ws) => {
         wssAgent.emit('connection', ws, request);
       });

@@ -7,7 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 # KONFIGURASI SERVER
 # ==========================================
 if (-not $ServerUrl) {
-    $ServerUrl = "https://192.168.1.29:3001"
+    $ServerUrl = "https://remote.nusambasingaparna.com"
 }
 $InstallDir = "C:\lab-agent"
 $GithubBase = "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent"

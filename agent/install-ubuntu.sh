@@ -28,9 +28,9 @@ systemctl stop lab-remote-agent 2>/dev/null
 systemctl disable lab-remote-agent 2>/dev/null
 rm -rf $INSTALL_DIR
 
-echo -e "\e[33m[2/6] Menginstal dependensi sistem (nodejs, npm, xinput, zenity, scrot)...\e[0m"
+echo -e "\e[33m[2/7] Menginstal dependensi sistem (nodejs, xinput, zenity, scrot, x11vnc)...\e[0m"
 apt-get update -y > /dev/null 2>&1
-apt-get install -y curl xinput zenity scrot > /dev/null 2>&1
+apt-get install -y curl xinput zenity scrot x11vnc > /dev/null 2>&1
 
 # Pastikan Node.js terinstal
 if ! command -v node &> /dev/null; then
@@ -39,7 +39,30 @@ if ! command -v node &> /dev/null; then
     apt-get install -y nodejs > /dev/null 2>&1
 fi
 
-echo -e "\e[33m[3/6] Menyiapkan direktori & Mengunduh file dari GitHub...\e[0m"
+echo -e "\e[33m[3/7] Menyiapkan VNC Server...\e[0m"
+# Set password VNC ke 'labpassword'
+x11vnc -storepasswd labpassword /etc/x11vnc.pass > /dev/null 2>&1
+chmod 600 /etc/x11vnc.pass
+
+cat > /etc/systemd/system/lab-vnc.service << EOF
+[Unit]
+Description=Lab VNC Server
+After=network.target display-manager.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/x11vnc -auth guess -display :0 -rfbauth /etc/x11vnc.pass -forever -shared -listen 0.0.0.0 -port 5900 -quiet
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable lab-vnc > /dev/null 2>&1
+systemctl restart lab-vnc
+
+echo -e "\e[33m[4/7] Menyiapkan direktori & Mengunduh file dari GitHub...\e[0m"
 mkdir -p $INSTALL_DIR/modules
 
 # Membuat config.js
@@ -62,11 +85,11 @@ for file in "${FILES[@]}"; do
     curl -sL "$GITHUB_BASE/$file" -o "$INSTALL_DIR/$file"
 done
 
-echo -e "\e[33m[4/6] Menginstal dependensi NPM...\e[0m"
+echo -e "\e[33m[5/7] Menginstal dependensi NPM...\e[0m"
 cd $INSTALL_DIR
 npm install --silent
 
-echo -e "\e[33m[5/6] Mengkonfigurasi Systemd Service (Background Daemon)...\e[0m"
+echo -e "\e[33m[6/7] Mengkonfigurasi Systemd Service (Background Daemon)...\e[0m"
 cat > /etc/systemd/system/lab-remote-agent.service << EOF
 [Unit]
 Description=Lab Remote Control Agent
@@ -84,7 +107,7 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 EOF
 
-echo -e "\e[33m[6/6] Menyalakan Lab Remote Agent...\e[0m"
+echo -e "\e[33m[7/7] Menyalakan Lab Remote Agent...\e[0m"
 systemctl daemon-reload
 systemctl enable lab-remote-agent
 systemctl start lab-remote-agent

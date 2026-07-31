@@ -6,7 +6,7 @@
 # KONFIGURASI SERVER
 # ==========================================
 if [ -z "$SERVER_URL" ]; then
-    SERVER_URL="http://192.168.1.33:3000"
+    SERVER_URL="https://192.168.1.29:3001"
 fi
 INSTALL_DIR="/opt/lab-agent"
 GITHUB_BASE="https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent"

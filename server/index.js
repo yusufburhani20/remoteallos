@@ -10,9 +10,28 @@ const { setupAdminHandlers } = require('./socket/adminHandler');
 const { setupVncProxy } = require('./vnc-proxy/proxy');
 const apiRoutes = require('./routes/api');
 
-// ─── App Setup ────────────────────────────────────────────────────────────────
+const fs = require('fs');
+
+// 🔌 App Setup 🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌🔌
 const app = express();
-const server = http.createServer(app);
+
+let server;
+const keyPath = path.join(__dirname, 'server.key');
+const certPath = path.join(__dirname, 'server.cert');
+
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  const https = require('https');
+  const options = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+  server = https.createServer(options, app);
+  console.log('🔒 SSL Certificates found. Starting in HTTPS mode.');
+} else {
+  server = http.createServer(app);
+  console.log('🔓 No SSL Certificates found. Starting in HTTP mode.');
+}
+
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
   maxHttpBufferSize: 20 * 1024 * 1024, // 20MB (for screenshots)
@@ -33,6 +52,8 @@ app.use(express.urlencoded({ extended: true }));
 // ─── Static Assets ────────────────────────────────────────────────────────────
 // Serve dashboard CSS, JS, images
 app.use('/assets', express.static(path.join(__dirname, '../dashboard')));
+// Serve agent installer & client files
+app.use('/agent', express.static(path.join(__dirname, '../agent')));
 
 // ─── Auth Middleware ──────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {

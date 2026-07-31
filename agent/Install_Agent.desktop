@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Name=Install Lab Agent
+Comment=Instalasi Lab Remote Agent Otomatis
+Exec=bash -c 'sudo bash -c "$(curl -sL https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-ubuntu.sh)"; echo -e "\nInstalasi Selesai! Tutup jendela ini."; sleep 5'
+Icon=utilities-terminal
+Terminal=true
+Type=Application

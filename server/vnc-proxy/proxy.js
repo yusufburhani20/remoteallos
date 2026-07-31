@@ -12,7 +12,13 @@ const pendingTunnels = new Map();
  *   Browser (noVNC) <--WS--> This Proxy <--WS--> Agent <--TCP--> VNC Server on lab PC
  */
 function setupVncProxy(httpServer) {
-  const wss = new WebSocket.Server({ noServer: true });
+  const wss = new WebSocket.Server({ 
+    noServer: true,
+    handleProtocols: (protocols) => {
+      // noVNC requests 'binary' and 'base64', we support 'binary'
+      return protocols.has('binary') ? 'binary' : protocols.has('base64') ? 'base64' : false;
+    }
+  });
   const wssAgent = new WebSocket.Server({ noServer: true });
 
   // Intercept HTTP upgrade requests
@@ -57,6 +63,8 @@ function setupVncProxy(httpServer) {
       console.warn(`[VNC] Agent ${pc.hostname} failed to open raw tunnel in time.`);
     }, 10000);
 
+    pendingTunnels.set(token, { ws: browserWs, timeout: timeout });
+
     browserWs.on('close', () => {
       clearTimeout(timeout);
       pendingTunnels.delete(token);
@@ -69,14 +77,20 @@ function setupVncProxy(httpServer) {
   // ─── AGENT CONNECTS RAW WEBSOCKET ──────────────────────────────────────────────
   wssAgent.on('connection', (agentWs, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const token = url.pathname.split('/agent-vnc/')[1];
+    const pathname = url.pathname.replace(/\/+/g, '/');
+    const token = pathname.split('/agent-vnc/')[1];
 
-    const browserWs = pendingTunnels.get(token);
-    if (!browserWs || browserWs.readyState !== WebSocket.OPEN) {
+    console.log(`[VNC-DEBUG] Agent connected. req.url: ${req.url}, pathname: ${pathname}, token: ${token}`);
+
+    const tunnel = pendingTunnels.get(token);
+    if (!tunnel || !tunnel.ws || tunnel.ws.readyState !== WebSocket.OPEN) {
+      console.warn(`[VNC-DEBUG] browserWs not found or not OPEN for token ${token}`);
       agentWs.close(4004, 'Invalid token or browser disconnected');
       return;
     }
 
+    const browserWs = tunnel.ws;
+    clearTimeout(tunnel.timeout);
     pendingTunnels.delete(token); // Token consumed
     console.log(`[VNC] Raw Tunnel established securely.`);
 

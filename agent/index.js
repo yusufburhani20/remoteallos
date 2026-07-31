@@ -179,7 +179,7 @@ function connect() {
 
     // ─── CLEANUP ───
     localTcp.on('close', () => {
-      if (agentWs.readyState === WebSocket.OPEN) agentWs.close();
+      if (agentWs && agentWs.readyState === WebSocket.OPEN) agentWs.close();
       localTcp = null;
     });
 

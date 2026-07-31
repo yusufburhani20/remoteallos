@@ -54,13 +54,27 @@ foreach ($file in $files) {
     Invoke-WebRequest -Uri $url -OutFile $dest
 }
 
-# 4. Instalasi modul (npm install)
-Write-Host "[4/6] Menginstal dependensi (membutuhkan koneksi internet)..." -ForegroundColor Yellow
+# 4. Instalasi VNC Server (Untuk Fitur Remote)
+Write-Host "[4/7] Menginstal VNC Server..." -ForegroundColor Yellow
+$vncProcess = Get-Process -Name "tvnserver" -ErrorAction SilentlyContinue
+if (-not $vncProcess) {
+    Write-Host "  -> Mengunduh TightVNC..." -ForegroundColor Gray
+    Invoke-WebRequest -Uri "$GithubBase/tightvnc.msi" -OutFile "$InstallDir\tightvnc.msi"
+    Write-Host "  -> Memasang TightVNC..." -ForegroundColor Gray
+    Start-Process "msiexec.exe" -ArgumentList "/i `"$InstallDir\tightvnc.msi`" /quiet /norestart SET_USEVNCAUTHENTICATION=1 VALUE_OF_USEVNCAUTHENTICATION=1 SET_PASSWORD=1 VALUE_OF_PASSWORD=labpassword SET_USECONTROLAUTHENTICATION=1 VALUE_OF_USECONTROLAUTHENTICATION=1 SET_CONTROLPASSWORD=1 VALUE_OF_CONTROLPASSWORD=labpassword" -Wait -NoNewWindow
+    Start-Process -FilePath "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-install" -WindowStyle Hidden -Wait
+    Start-Process -FilePath "C:\Program Files\TightVNC\tvnserver.exe" -ArgumentList "-start" -WindowStyle Hidden
+} else {
+    Write-Host "  -> VNC Server sudah terpasang dan berjalan." -ForegroundColor Gray
+}
+
+# 5. Instalasi modul (npm install)
+Write-Host "[5/7] Menginstal dependensi (membutuhkan koneksi internet)..." -ForegroundColor Yellow
 Set-Location -Path $InstallDir
 npm install
 
-# 5. Konfigurasi Autostart (Background)
-Write-Host "[5/6] Mengkonfigurasi agent berjalan otomatis di latar belakang..." -ForegroundColor Yellow
+# 6. Konfigurasi Autostart (Background)
+Write-Host "[6/7] Mengkonfigurasi agent berjalan otomatis di latar belakang..." -ForegroundColor Yellow
 $nodeExe = (Get-Command node).Source
 $vbsContent = 'Set objShell = WScript.CreateObject("WScript.Shell")' + "`r`n"
 $vbsContent += 'objShell.Run """' + $nodeExe + '"" ""C:\lab-agent\index.js""", 0, False'
@@ -69,8 +83,8 @@ Set-Content -Path "$InstallDir\run-hidden.vbs" -Value $vbsContent -Encoding Asci
 $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
 Set-ItemProperty -Path $regPath -Name 'LabRemoteAgent' -Value "wscript.exe `"$InstallDir\run-hidden.vbs`""
 
-# 6. Menyalakan Agent
-Write-Host "[6/6] Menyalakan Lab Remote Agent..." -ForegroundColor Yellow
+# 7. Menyalakan Agent
+Write-Host "[7/7] Menyalakan Lab Remote Agent..." -ForegroundColor Yellow
 Start-Process "wscript.exe" -ArgumentList "`"$InstallDir\run-hidden.vbs`"" -WorkingDirectory $InstallDir
 
 Write-Host ""

@@ -1,15 +1,19 @@
 const WebSocket = require('ws');
 const pcRegistry = require('../store/pcRegistry');
 const agentSockets = require('../store/agentSockets');
+const crypto = require('crypto');
+
+const pendingTunnels = new Map();
 
 /**
- * VNC WebSocket Proxy (Reverse Tunneling via Socket.IO)
+ * VNC WebSocket Proxy (Raw Reverse Tunneling)
  *
  * When an admin requests remote desktop for a PC:
- *   Browser (noVNC) <--WS--> This Proxy <--Socket.io--> Agent <--TCP--> VNC Server on lab PC
+ *   Browser (noVNC) <--WS--> This Proxy <--WS--> Agent <--TCP--> VNC Server on lab PC
  */
 function setupVncProxy(httpServer) {
   const wss = new WebSocket.Server({ noServer: true });
+  const wssAgent = new WebSocket.Server({ noServer: true });
 
   // Intercept HTTP upgrade requests
   httpServer.on('upgrade', (request, socket, head) => {
@@ -19,64 +23,84 @@ function setupVncProxy(httpServer) {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
+    } else if (url.pathname.startsWith('/agent-vnc/')) {
+      wssAgent.handleUpgrade(request, socket, head, (ws) => {
+        wssAgent.emit('connection', ws, request);
+      });
     }
   });
 
-  wss.on('connection', (ws, req) => {
+  // ─── DASHBOARD BROWSER CONNECTS ───────────────────────────────────────────────
+  wss.on('connection', (browserWs, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pcId = decodeURIComponent(url.pathname.split('/vnc/')[1] || '').toUpperCase();
 
     const pc = pcRegistry.getPC(pcId);
-    const agentSocket = agentSockets.get(pcId);
+    const agentSocketio = agentSockets.get(pcId);
 
-    if (!pc || pc.status !== 'online' || !agentSocket) {
+    if (!pc || pc.status !== 'online' || !agentSocketio) {
       console.warn(`[VNC] Rejected: PC "${pcId}" not found, offline, or agent socket missing`);
-      ws.close(4000, 'PC not found or offline');
+      browserWs.close(4000, 'PC not found or offline');
       return;
     }
 
-    console.log(`[VNC] Starting Reverse Tunnel for ${pc.hostname}`);
+    console.log(`[VNC] Browser requested tunnel for ${pc.hostname}`);
 
-    // Tell agent to start local VNC connection
-    agentSocket.emit('vnc-start');
+    const token = crypto.randomBytes(16).toString('hex');
+    pendingTunnels.set(token, browserWs);
 
-    // Agent -> Browser
-    const onVncAgentData = (data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data, { binary: true });
-      }
-    };
-    
-    const onVncAgentClosed = () => {
-      console.log(`[VNC] Tunnel closed by Agent (${pc.hostname})`);
-      if (ws.readyState === WebSocket.OPEN) ws.close();
-    };
+    // Timeout if agent doesn't connect within 10s
+    const timeout = setTimeout(() => {
+      pendingTunnels.delete(token);
+      if (browserWs.readyState === WebSocket.OPEN) browserWs.close(4008, 'Agent connection timeout');
+      console.warn(`[VNC] Agent ${pc.hostname} failed to open raw tunnel in time.`);
+    }, 10000);
 
-    agentSocket.on('vnc-agent-data', onVncAgentData);
-    agentSocket.on('vnc-agent-closed', onVncAgentClosed);
-
-    // Browser -> Agent
-    ws.on('message', (data) => {
-      agentSocket.emit('vnc-browser-data', data);
+    browserWs.on('close', () => {
+      clearTimeout(timeout);
+      pendingTunnels.delete(token);
     });
 
-    // Cleanup
-    const cleanup = (source) => {
-      console.log(`[VNC] Disconnected from ${pc.hostname} (${source})`);
-      agentSocket.emit('vnc-stop');
-      agentSocket.off('vnc-agent-data', onVncAgentData);
-      agentSocket.off('vnc-agent-closed', onVncAgentClosed);
-      if (ws.readyState === WebSocket.OPEN) ws.close();
-    };
-
-    ws.on('close', () => cleanup('browser'));
-    ws.on('error', (err) => {
-      console.error(`[VNC] WS error (${pc.hostname}):`, err.message);
-      cleanup('ws-error');
-    });
+    // Tell Agent to open a RAW WebSocket to /agent-vnc/TOKEN
+    agentSocketio.emit('vnc-start-raw', { token });
   });
 
-  console.log('✓ VNC WebSocket Reverse Tunnel initialized');
+  // ─── AGENT CONNECTS RAW WEBSOCKET ──────────────────────────────────────────────
+  wssAgent.on('connection', (agentWs, req) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const token = url.pathname.split('/agent-vnc/')[1];
+
+    const browserWs = pendingTunnels.get(token);
+    if (!browserWs || browserWs.readyState !== WebSocket.OPEN) {
+      agentWs.close(4004, 'Invalid token or browser disconnected');
+      return;
+    }
+
+    pendingTunnels.delete(token); // Token consumed
+    console.log(`[VNC] Raw Tunnel established securely.`);
+
+    // ─── DIRECT PIPE (RAW TCP SPEED) ───
+    agentWs.on('message', data => {
+      if (browserWs.readyState === WebSocket.OPEN) browserWs.send(data, { binary: true });
+    });
+    
+    browserWs.on('message', data => {
+      if (agentWs.readyState === WebSocket.OPEN) agentWs.send(data, { binary: true });
+    });
+
+    // ─── CLEANUP ───
+    const cleanup = () => {
+      if (agentWs.readyState === WebSocket.OPEN) agentWs.close();
+      if (browserWs.readyState === WebSocket.OPEN) browserWs.close();
+    };
+
+    agentWs.on('close', cleanup);
+    browserWs.on('close', cleanup);
+    agentWs.on('error', cleanup);
+    browserWs.on('error', cleanup);
+  });
+
+  console.log('✓ VNC Raw WebSocket Reverse Tunnel initialized');
 }
 
 module.exports = { setupVncProxy };

@@ -8,6 +8,7 @@
 const { io }         = require('socket.io-client');
 const os             = require('os');
 const net            = require('net');
+const WebSocket      = require('ws');
 const config         = require('./config');
 const { getMetrics } = require('./modules/metrics');
 const { executeCommand }           = require('./modules/shell');
@@ -140,45 +141,55 @@ function connect() {
     showNotification(message);
   });
 
-  // ─── REVERSE TUNNEL VNC ─────────────────────────────────────────────────────
-  let vncSocket = null;
-  socket.on('vnc-start', () => {
-    console.log('[VNC] Starting local Reverse Tunnel to port 5900...');
-    if (vncSocket) vncSocket.destroy();
+  // ─── REVERSE TUNNEL VNC (RAW WEBSOCKET) ─────────────────────────────────────
+  let localTcp = null;
+  let agentWs = null;
+
+  socket.on('vnc-start-raw', ({ token }) => {
+    console.log('[VNC] Starting RAW Reverse Tunnel to server...');
     
-    vncSocket = net.createConnection({ port: 5900, host: '127.0.0.1' });
+    // Clean up old instances if any
+    if (localTcp) localTcp.destroy();
+    if (agentWs) agentWs.close();
+
+    const wsProtocol = config.SERVER_URL.startsWith('https') ? 'wss' : 'ws';
+    const serverHost = config.SERVER_URL.replace(/^https?:\/\//, '');
+    const wsUrl = `${wsProtocol}://${serverHost}/agent-vnc/${token}`;
     
-    vncSocket.on('connect', () => {
-      console.log('[VNC] Local socket connected');
+    agentWs = new WebSocket(wsUrl);
+    localTcp = net.createConnection({ port: 5900, host: '127.0.0.1' });
+
+    localTcp.on('connect', () => {
+      console.log('[VNC] Local TCP connected');
     });
 
-    vncSocket.on('data', (data) => {
-      socket.emit('vnc-agent-data', data);
+    agentWs.on('open', () => {
+      console.log('[VNC] Raw WebSocket connected to Server');
     });
 
-    vncSocket.on('close', () => {
-      console.log('[VNC] Local socket closed');
-      socket.emit('vnc-agent-closed');
-      vncSocket = null;
+    // ─── DIRECT PIPE ───
+    localTcp.on('data', data => {
+      if (agentWs.readyState === WebSocket.OPEN) agentWs.send(data);
     });
 
-    vncSocket.on('error', (err) => {
-      console.error('[VNC] Local error:', err.message);
+    agentWs.on('message', data => {
+      if (!localTcp.destroyed) localTcp.write(data);
     });
-  });
 
-  socket.on('vnc-browser-data', (data) => {
-    if (vncSocket && !vncSocket.destroyed) {
-      vncSocket.write(data);
-    }
-  });
+    // ─── CLEANUP ───
+    localTcp.on('close', () => {
+      if (agentWs.readyState === WebSocket.OPEN) agentWs.close();
+      localTcp = null;
+    });
 
-  socket.on('vnc-stop', () => {
-    console.log('[VNC] Stopping Reverse Tunnel');
-    if (vncSocket) {
-      vncSocket.destroy();
-      vncSocket = null;
-    }
+    agentWs.on('close', () => {
+      console.log('[VNC] Raw Tunnel closed');
+      if (localTcp && !localTcp.destroyed) localTcp.destroy();
+      agentWs = null;
+    });
+    
+    localTcp.on('error', (err) => console.error('[VNC TCP Error]', err.message));
+    agentWs.on('error', (err) => console.error('[VNC WS Error]', err.message));
   });
 }
 

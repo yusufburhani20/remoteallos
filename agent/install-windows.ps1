@@ -20,7 +20,6 @@ Write-Host ""
 # 1. Menghentikan agent jika sudah berjalan
 Write-Host "[1/6] Menghentikan agent lama (jika ada)..." -ForegroundColor Yellow
 Stop-Process -Name "node" -Force
-Stop-Process -Name "powershell" -Force
 Start-Sleep -Seconds 2
 
 # 2. Membuat direktori instalasi

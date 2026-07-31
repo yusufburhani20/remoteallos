@@ -20,7 +20,7 @@ echo.
 echo Sedang mengunduh dan mengatur sistem, mohon tunggu...
 echo.
 
-powershell -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-windows.ps1' | Invoke-Expression"
+powershell -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-windows.ps1?v=2' | Invoke-Expression"
 
 echo.
 echo Selesai! Anda bisa menutup jendela ini sekarang.

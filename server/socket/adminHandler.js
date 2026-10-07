@@ -84,6 +84,13 @@ function setupAdminHandlers(adminIO, agentIO) {
       agentIO.emit('show_notification', { message });
     });
 
+    // ─── PC METADATA ──────────────────────────────────────────────
+    socket.on('update_pc_meta', ({ pcId, alias, notes }) => {
+      pcRegistry.updateMetadata(pcId, { alias, notes });
+      // Broadcast updated PC back to all admins
+      adminIO.emit('pc_registered', pcRegistry.getPC(pcId));
+    });
+
     // ─── BULK SCREENSHOT: request screenshot semua PC ────────────
     socket.on('broadcast_screenshot', () => {
       const requestId = Date.now().toString();

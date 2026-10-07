@@ -94,9 +94,13 @@
     <div id="side-panel">
       <div class="panel-header">
         <div class="panel-status-dot" id="panel-status-dot"></div>
-        <div class="panel-pc-info">
-          <div class="panel-pc-name" id="panel-pc-name">—</div>
+        <div class="panel-pc-info" style="flex:1;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="panel-pc-name" id="panel-pc-name">—</div>
+            <button class="btn btn-ghost" id="btn-edit-meta" title="Edit Nama / Catatan" style="padding:2px 6px; font-size:12px;">✏️</button>
+          </div>
           <div class="panel-pc-meta" id="panel-pc-meta">—</div>
+          <div id="panel-pc-notes" class="text-muted" style="font-size:11px; margin-top:4px; font-style:italic;"></div>
         </div>
         <button class="panel-close" id="panel-close" title="Tutup panel & kembali ke dashboard (ESC)">✕ Tutup (ESC)</button>
       </div>
@@ -261,6 +265,30 @@
     <div class="modal-actions">
       <a class="btn btn-ghost" id="ss-download" download="screenshot.jpg">⬇ Download</a>
       <button class="btn btn-ghost" id="ss-close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit Meta -->
+<div class="modal-overlay" id="modal-meta" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>✏️ Edit Data PC</h3>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-meta').style.display='none'">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label for="meta-alias" style="display:block; margin-bottom:4px; font-size:12px;">Nama Kustom (Opsional)</label>
+        <input type="text" id="meta-alias" placeholder="Misal: PC Milik Rudi" class="toolbar-search">
+      </div>
+      <div class="input-group" style="margin-top:12px;">
+        <label for="meta-notes" style="display:block; margin-bottom:4px; font-size:12px;">Catatan (Opsional)</label>
+        <textarea id="meta-notes" placeholder="Catatan untuk PC ini..." class="toolbar-search" style="height:60px; resize:none; padding:8px; width:100%; box-sizing:border-box; font-family:inherit;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-meta').style.display='none'">Batal</button>
+      <button class="btn btn-primary" id="btn-save-meta">Simpan</button>
     </div>
   </div>
 </div>

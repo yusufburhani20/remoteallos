@@ -61,6 +61,18 @@ function updateSocketId(id, socketId) {
 }
 
 /**
+ * Update PC Metadata (alias/notes)
+ */
+function updateMetadata(id, meta) {
+  const pc = pcs.get(id);
+  if (pc) {
+    if (meta.alias !== undefined) pc.alias = meta.alias;
+    if (meta.notes !== undefined) pc.notes = meta.notes;
+    saveRegistry();
+  }
+}
+
+/**
  * Update PC's real-time metrics
  */
 function updateMetrics(id, metrics) {
@@ -117,6 +129,7 @@ module.exports = {
   markOffline,
   updateSocketId,
   updateMetrics,
+  updateMetadata,
   getPC,
   getPCBySocketId,
   getAllPCs,

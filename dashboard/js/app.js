@@ -173,9 +173,11 @@ function createPcCard(pc) {
     ? `<img class="pc-thumb-img" src="data:image/jpeg;base64,${thumb}" alt="Live Desktop">`
     : `<div class="pc-thumb-placeholder"><span>🖥️</span><span>${pc.status === 'online' ? 'Memuat Layar...' : 'Offline'}</span></div>`;
 
+  const displayName = pc.alias ? pc.alias : pc.hostname;
+
   card.innerHTML = `
     <div class="pc-card-top">
-      <div class="pc-name-pill" title="${pc.hostname}">${pc.hostname}</div>
+      <div class="pc-name-pill" title="${pc.hostname}">${displayName}</div>
       <div class="pc-status-badge">
         <div class="pc-status-dot"></div>
         <span style="font-size:11px;">${osIcon}</span>
@@ -264,9 +266,15 @@ function selectPC(pcId) {
   if (card) card.classList.add('selected');
 
   // Populate panel
-  document.getElementById('panel-pc-name').textContent = pc.hostname;
+  const displayName = pc.alias ? `${pc.alias} (${pc.hostname})` : pc.hostname;
+  document.getElementById('panel-pc-name').textContent = displayName;
   document.getElementById('panel-pc-meta').textContent =
     `${pc.ip || '?'} • ${pc.os === 'windows' ? 'Windows' : 'Ubuntu'} • ${pc.arch || ''}`;
+  
+  const notesEl = document.getElementById('panel-pc-notes');
+  if (notesEl) {
+    notesEl.textContent = pc.notes ? `📝 ${pc.notes}` : '';
+  }
 
   updatePanelStatus(pc);
   updateInfoTab(pc);
@@ -442,6 +450,36 @@ document.getElementById('btn-wol')?.addEventListener('click', () => {
   socket.emit('wake_pc', { pcId: state.selectedPcId });
   showToast(`⚡ Mengirim Magic Packet (WOL) ke ${state.pcs[state.selectedPcId]?.hostname}...`, 'success');
 });
+
+// ─── META MODAL EVENT ────────────────────────────────────────────
+const btnEditMeta = document.getElementById('btn-edit-meta');
+const modalMeta = document.getElementById('modal-meta');
+const btnSaveMeta = document.getElementById('btn-save-meta');
+const inputAlias = document.getElementById('meta-alias');
+const inputNotes = document.getElementById('meta-notes');
+
+if (btnEditMeta) {
+  btnEditMeta.addEventListener('click', () => {
+    const pc = state.pcs[state.selectedPcId];
+    if (!pc) return;
+    inputAlias.value = pc.alias || '';
+    inputNotes.value = pc.notes || '';
+    modalMeta.style.display = 'flex';
+  });
+}
+
+if (btnSaveMeta) {
+  btnSaveMeta.addEventListener('click', () => {
+    if (!state.selectedPcId) return;
+    socket.emit('update_pc_meta', {
+      pcId: state.selectedPcId,
+      alias: inputAlias.value.trim(),
+      notes: inputNotes.value.trim()
+    });
+    modalMeta.style.display = 'none';
+    showToast('Data PC berhasil disimpan', 'success');
+  });
+}
 
 function powerAction(action) {
   if (!state.selectedPcId) return;

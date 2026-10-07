@@ -1,5 +1,29 @@
+const fs = require('fs');
+const path = require('path');
+
 // In-memory registry for all connected lab PCs
 const pcs = new Map(); // pcId -> pc object
+
+const STORE_FILE = path.join(__dirname, '..', '..', 'devices.json');
+
+// Muat data lama (termasuk MAC address) jika ada
+if (fs.existsSync(STORE_FILE)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+    Object.keys(data).forEach(id => {
+      pcs.set(id, { ...data[id], status: 'offline' });
+    });
+  } catch(e) {
+    console.error('Gagal membaca devices.json', e);
+  }
+}
+
+function saveRegistry() {
+  try {
+    const obj = Object.fromEntries(pcs);
+    fs.writeFileSync(STORE_FILE, JSON.stringify(obj, null, 2));
+  } catch(e) {}
+}
 
 /**
  * Register or update a PC
@@ -12,6 +36,7 @@ function upsertPC(id, data) {
     status: 'online',
     lastSeen: new Date().toISOString(),
   });
+  saveRegistry();
   return pcs.get(id);
 }
 

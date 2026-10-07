@@ -21,16 +21,16 @@ const PLATFORM = os.platform();
 const OS_TYPE  = PLATFORM === 'win32' ? 'windows' : 'linux';
 
 // ─── Get local IP ─────────────────────────────────────────────────────────────
-function getLocalIP() {
+function getNetworkInfo() {
   const interfaces = os.networkInterfaces();
   for (const ifaces of Object.values(interfaces)) {
     for (const iface of ifaces) {
       if (!iface.internal && iface.family === 'IPv4') {
-        return iface.address;
+        return { ip: iface.address, mac: iface.mac };
       }
     }
   }
-  return '127.0.0.1';
+  return { ip: '127.0.0.1', mac: '00:00:00:00:00:00' };
 }
 
 // ─── Banner ───────────────────────────────────────────────────────────────────
@@ -39,7 +39,8 @@ console.log('║    🤖  Lab Remote Agent               ║');
 console.log('╚═══════════════════════════════════════╝');
 console.log(`  Hostname : ${HOSTNAME}`);
 console.log(`  OS       : ${OS_TYPE} (${PLATFORM})`);
-console.log(`  IP       : ${getLocalIP()}`);
+console.log(`  IP       : ${getNetworkInfo().ip}`);
+console.log(`  MAC      : ${getNetworkInfo().mac}`);
 console.log(`  Server   : ${config.SERVER_URL}`);
 console.log('');
 
@@ -66,7 +67,8 @@ function connect() {
       os:       OS_TYPE,
       platform: PLATFORM,
       arch:     os.arch(),
-      ip:       getLocalIP(),
+      ip:       getNetworkInfo().ip,
+      mac:      getNetworkInfo().mac,
     });
 
     // Start sending metrics every 4 seconds (lightweight, zero process creation overhead)

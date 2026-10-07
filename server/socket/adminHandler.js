@@ -1,4 +1,5 @@
 const pcRegistry = require('../store/pcRegistry');
+const wol = require('wake_on_lan');
 
 /**
  * Setup handlers for admin dashboard connections via Socket.IO /admin namespace
@@ -56,6 +57,22 @@ function setupAdminHandlers(adminIO, agentIO) {
     // ─── POWER CONTROL ────────────────────────────────────────────
     socket.on('power', ({ pcId, action }) => {
       sendToAgent(pcId, 'power', { action });
+    });
+
+    // ─── WAKE ON LAN ──────────────────────────────────────────────
+    socket.on('wake_pc', ({ pcId }) => {
+      const pc = pcRegistry.getPC(pcId);
+      if (pc && pc.mac) {
+        wol.wake(pc.mac, { address: '255.255.255.255' }, (err) => {
+          if (err) {
+            socket.emit('error_msg', { message: `WOL Gagal: ${err.message}`, pcId });
+          } else {
+            console.log(`[WOL] Magic packet sent to ${pc.mac} (${pcId})`);
+          }
+        });
+      } else {
+        socket.emit('error_msg', { message: `MAC Address tidak ditemukan untuk PC ini. PC harus pernah online sebelumnya.`, pcId });
+      }
     });
 
     // ─── BROADCAST: kirim ke SEMUA PC agent ──────────────────────

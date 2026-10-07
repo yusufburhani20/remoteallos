@@ -321,6 +321,8 @@ function selectPC(pcId) {
 function updatePanelStatus(pc) {
   const dot = document.getElementById('panel-status-dot');
   dot.classList.toggle('online', pc.status === 'online');
+  const btnWol = document.getElementById('btn-wol');
+  if (btnWol) btnWol.style.display = pc.status === 'offline' ? 'inline-flex' : 'none';
 }
 
 function updateInfoTab(pc) {
@@ -455,6 +457,11 @@ document.getElementById('btn-restart').addEventListener('click', () => {
 document.getElementById('btn-shutdown').addEventListener('click', () => {
   if (!confirm('Matikan PC ini?')) return;
   powerAction('shutdown');
+});
+document.getElementById('btn-wol')?.addEventListener('click', () => {
+  if (!state.selectedPcId) return;
+  socket.emit('wake_pc', { pcId: state.selectedPcId });
+  showToast(`⚡ Mengirim Magic Packet (WOL) ke ${state.pcs[state.selectedPcId]?.hostname}...`, 'success');
 });
 
 function powerAction(action) {

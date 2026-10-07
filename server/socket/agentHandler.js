@@ -21,6 +21,7 @@ function setupAgentHandlers(agentIO, adminIO) {
         platform: data.platform || '',
         arch: data.arch || '',
         ip: data.ip || clientIP,
+        mac: data.mac || '',
       });
 
       socket.pcId = pcId;

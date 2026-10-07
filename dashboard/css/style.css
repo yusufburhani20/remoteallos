@@ -110,35 +110,16 @@ html, body {
   overflow: hidden;
 }
 
-.login-bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.15;
-  pointer-events: none;
-}
-.login-bg-orb.orb1 {
-  width: 500px; height: 500px;
-  background: var(--accent-blue);
-  top: -150px; left: -150px;
-}
-.login-bg-orb.orb2 {
-  width: 400px; height: 400px;
-  background: var(--accent-cyan);
-  bottom: -100px; right: -100px;
-}
-
-.login-card {
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-  padding: 48px 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-card), 0 0 80px rgba(77, 159, 255, 0.08);
-}
+  .login-card {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    padding: 48px 40px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+  }
 
 .login-logo {
   text-align: center;
@@ -1162,10 +1143,18 @@ html, body {
   
   .header-actions { 
     width: 100%; 
-    justify-content: space-between; 
+    justify-content: flex-start;
     margin-top: 4px;
-    overflow-x: auto;
     padding-bottom: 4px;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+  }
+  .header-actions::-webkit-scrollbar {
+    display: none;
   }
   .header-actions .btn { font-size: 13px; padding: 10px 14px; min-height: 44px; }
 

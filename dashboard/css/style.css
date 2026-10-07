@@ -1147,15 +1147,10 @@ html, body {
     margin-top: 4px;
     padding-bottom: 4px;
     display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
     gap: 8px;
   }
-  .header-actions::-webkit-scrollbar {
-    display: none;
-  }
+  .hide-mobile { display: none !important; }
   .header-actions .btn { font-size: 13px; padding: 10px 14px; min-height: 44px; }
 
   #toolbar { 

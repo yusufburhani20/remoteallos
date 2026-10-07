@@ -733,9 +733,13 @@ html, body {
 }
 
 .panel-pc-info { flex: 1; min-width: 0; }
+.panel-pc-name-row {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
 .panel-pc-name {
   font-size: 16px; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
 }
 .panel-pc-meta {
   font-size: 11px; color: var(--text-secondary);
@@ -1195,6 +1199,14 @@ html, body {
   .panel-header { padding: 12px; }
   .panel-tabs { overflow-x: auto; padding: 0 8px; }
   .tab-btn { font-size: 11px; padding: 8px 10px; }
-  .panel-actions { justify-content: center; }
-  .panel-actions .btn { font-size: 13px; padding: 10px 14px; min-height: 44px; }
+  .panel-actions { 
+    flex-wrap: nowrap; 
+    overflow-x: auto; 
+    justify-content: flex-start; 
+    -webkit-overflow-scrolling: touch; 
+    scrollbar-width: none; 
+    padding-bottom: 12px;
+  }
+  .panel-actions::-webkit-scrollbar { display: none; }
+  .panel-actions .btn { font-size: 13px; padding: 10px 14px; min-height: 44px; flex-shrink: 0; }
 }

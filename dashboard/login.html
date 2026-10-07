@@ -15,8 +15,8 @@
   <div class="login-page">
     <div class="login-card">
       <!-- Theme Toggle inside the card -->
-      <button class="btn btn-ghost" id="btn-theme-toggle" title="Ganti Tema" style="position: absolute; top: 16px; right: 16px; font-size: 12px; padding: 4px 8px;">
-        ☀️ Tema
+      <button class="btn btn-ghost" id="btn-theme-toggle" title="Ganti Tema" style="position: absolute; top: 16px; right: 16px; font-size: 14px; padding: 6px;">
+        ☀️
       </button>
       <div class="login-logo">
         <div class="login-logo-icon">🖥️</div>
@@ -74,7 +74,7 @@
     const themeBtn = document.getElementById('btn-theme-toggle');
     function updateThemeButton() {
       const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-      themeBtn.innerHTML = isLight ? '🌙 Gelap' : '☀️ Terang';
+      themeBtn.innerHTML = isLight ? '🌙' : '☀️';
     }
     themeBtn.addEventListener('click', () => {
       let currentTheme = document.documentElement.getAttribute('data-theme');

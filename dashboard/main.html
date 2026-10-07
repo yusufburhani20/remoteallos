@@ -277,24 +277,21 @@
 
 <!-- Modal Edit Meta -->
 <div class="modal-overlay" id="modal-meta" style="display:none;">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>✏️ Edit Data PC</h3>
-      <button class="btn btn-ghost" onclick="document.getElementById('modal-meta').style.display='none'">✖</button>
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin-bottom:0;">✏️ Edit Data PC</h3>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-meta').style.display='none'" style="padding:6px 10px; font-size:12px;">✖</button>
     </div>
-    <div class="modal-body">
-      <div class="input-group">
-        <label for="meta-alias" style="display:block; margin-bottom:4px; font-size:12px;">Nama Kustom (Opsional)</label>
-        <input type="text" id="meta-alias" placeholder="Misal: PC Milik Rudi" class="toolbar-search">
-      </div>
-      <div class="input-group" style="margin-top:12px;">
-        <label for="meta-notes" style="display:block; margin-bottom:4px; font-size:12px;">Catatan (Opsional)</label>
-        <textarea id="meta-notes" placeholder="Catatan untuk PC ini..." class="toolbar-search" style="height:60px; resize:none; padding:8px; width:100%; box-sizing:border-box; font-family:inherit;"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+    
+    <label for="meta-alias" style="display:block; margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:0.5px;">NAMA KUSTOM (OPSIONAL)</label>
+    <input type="text" id="meta-alias" placeholder="Misal: PC Milik Rudi" style="width:100%; background:var(--bg-input); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); color:var(--text-primary); font-family:var(--font-ui); font-size:13px; padding:10px; margin-bottom:16px; box-sizing:border-box; outline:none; transition:border-color var(--transition);" onfocus="this.style.borderColor='var(--border-focus)'" onblur="this.style.borderColor='var(--border-subtle)'">
+    
+    <label for="meta-notes" style="display:block; margin-bottom:6px; font-size:12px; font-weight:600; color:var(--text-muted); letter-spacing:0.5px;">CATATAN (OPSIONAL)</label>
+    <textarea id="meta-notes" placeholder="Tulis catatan, spesifikasi, atau keluhan untuk PC ini..."></textarea>
+    
+    <div class="modal-actions" style="margin-top:24px;">
       <button class="btn btn-ghost" onclick="document.getElementById('modal-meta').style.display='none'">Batal</button>
-      <button class="btn btn-primary" id="btn-save-meta">Simpan</button>
+      <button class="btn btn-primary" id="btn-save-meta">Simpan Perubahan</button>
     </div>
   </div>
 </div>

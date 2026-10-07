@@ -165,9 +165,8 @@ function createPcCard(pc) {
   const cpu     = pc.metrics?.cpu ?? null;
   const ram     = pc.metrics?.ram?.percent ?? null;
   const disk    = pc.metrics?.disk?.percent ?? null;
-  const netDown = pc.metrics?.network?.down ?? '0 KB/s';
-  const netUp   = pc.metrics?.network?.up ?? '0 KB/s';
-  const app     = pc.metrics?.activeApp || 'Desktop';
+  
+  
   const thumb   = pc.metrics?.thumbnail;
 
   const thumbHtml = thumb
@@ -190,16 +189,6 @@ function createPcCard(pc) {
       </div>
     </div>
     <div class="pc-card-detail">
-      <div class="detail-grid">
-        <div class="grid-cell" title="Alamat IP"><span class="cell-icon">🌐</span> <span class="cell-val net-ip">${pc.ip || '—'}</span></div>
-        <div class="grid-cell" title="Penyimpanan Disk"><span class="cell-icon">💽</span> <span class="cell-val disk-val">Disk: ${disk !== null ? disk+'%' : '—'}</span></div>
-        <div class="grid-cell" title="Trafik Download"><span class="cell-icon" style="color:#22c55e;">⬇</span> <span class="cell-val net-down">${netDown}</span></div>
-        <div class="grid-cell" title="Trafik Upload"><span class="cell-icon" style="color:#3b82f6;">⬆</span> <span class="cell-val net-up">${netUp}</span></div>
-      </div>
-      <div class="detail-row app-banner" title="Aplikasi Utama Aktif: ${app}">
-        <span style="color:#f59e0b; font-weight:700;">⚡ App:</span>
-        <span class="app-name">${app}</span>
-      </div>
       <div class="detail-resource-bar">
         <span class="res-label">CPU</span>
         <div class="res-bar"><div class="res-fill cpu" style="width:${cpu ?? 0}%"></div></div>
@@ -251,21 +240,11 @@ function updatePcCardMetrics(pcId) {
   const ramFill  = card.querySelector('.res-fill.ram');
   const cpuVal   = card.querySelector('.cpu-val');
   const ramVal   = card.querySelector('.ram-val');
-  const diskEl   = card.querySelector('.disk-val');
-  const netDown  = card.querySelector('.net-down');
-  const netUp    = card.querySelector('.net-up');
-  const appName  = card.querySelector('.app-name');
 
   if (cpuFill) cpuFill.style.width = (m.cpu ?? 0) + '%';
   if (ramFill) ramFill.style.width = (m.ram?.percent ?? 0) + '%';
   if (cpuVal) cpuVal.textContent = m.cpu !== undefined ? m.cpu + '%' : '—';
   if (ramVal) ramVal.textContent = m.ram?.percent !== undefined ? m.ram.percent + '%' : '—';
-  if (diskEl && m.disk?.percent !== undefined) {
-    diskEl.textContent = `Disk: ${m.disk.percent}%`;
-  }
-  if (netDown && m.network?.down) netDown.textContent = m.network.down;
-  if (netUp && m.network?.up) netUp.textContent = m.network.up;
-  if (appName && m.activeApp) appName.textContent = m.activeApp;
 }
 
 // ─── PC Selection & Panel ────────────────────────────────────────────────────

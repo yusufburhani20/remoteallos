@@ -15,11 +15,22 @@ function startThumbnailWorker() {
       const captureWin = async () => {
         try {
           const imgBuffer = await screenshot({ format: 'jpg' });
-          latestThumbnail = imgBuffer.toString('base64');
+          try {
+            const Jimp = require('jimp');
+            const image = await Jimp.read(imgBuffer);
+            image.resize(400, Jimp.AUTO); // Resize width to 400px (height auto)
+            image.quality(60); // Lower jpeg quality to 60%
+            const compressedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+            latestThumbnail = compressedBuffer.toString('base64');
+          } catch (err) {
+            console.error('[ScreenshotWorker] Jimp compress error:', err.message);
+            // Fallback to uncompressed if Jimp fails
+            latestThumbnail = imgBuffer.toString('base64');
+          }
         } catch (e) {
           // console.error('[ScreenshotWorker] Error:', e.message);
         }
-        setTimeout(captureWin, 3000);
+        setTimeout(captureWin, 8000); // Increased interval to 8 seconds
       };
       captureWin();
     } catch (err) {
@@ -39,7 +50,7 @@ function startThumbnailWorker() {
         if (!err && stdout && stdout.length > 100) {
           latestThumbnail = stdout.trim();
         }
-        setTimeout(captureLinux, 3000);
+        setTimeout(captureLinux, 8000); // Increased interval to 8 seconds
       });
     };
     captureLinux();

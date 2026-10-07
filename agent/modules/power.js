@@ -1,4 +1,4 @@
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execSync } = require('child_process');
 const path = require('path');
 const os   = require('os');
 
@@ -106,7 +106,9 @@ function hideLockBanner() {
     overlayProcess = null;
   }
   if (IS_WINDOWS) {
-    exec('powershell -Command "Get-Process powershell | Where-Object { $_.CommandLine -match \'lock_worker.ps1\' } | Stop-Process -Force" 2>nul', () => {});
+    try {
+      execSync('powershell -Command "Get-Process powershell | Where-Object { $_.CommandLine -match \'lock_worker.ps1\' } | Stop-Process -Force" 2>nul');
+    } catch (_) {}
   }
 }
 
@@ -144,7 +146,7 @@ function hideLinuxLockBanner() {
   for id in $ids; do xinput enable $id 2>/dev/null; done
   killall zenity 2>/dev/null
   `;
-  exec(script, { shell: '/bin/bash' });
+  try { execSync(script, { shell: '/bin/bash' }); } catch (_) {}
 }
 
 function isBlocked() {

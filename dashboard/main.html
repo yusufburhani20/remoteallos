@@ -6,6 +6,11 @@
   <title>Lab Remote Manager — Dashboard</title>
   <meta name="description" content="Dashboard manajemen komputer lab">
   <link rel="stylesheet" href="/assets/css/style.css?v=1.6.0">
+  <script>
+    // Terapkan tema sebelum halaman selesai dimuat agar tidak ada kedipan
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  </script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -41,6 +46,9 @@
       </button>
       <button class="btn btn-danger" id="btn-shutdown-all" title="Matikan semua PC">
         ⏻ Shutdown Semua
+      </button>
+      <button class="btn btn-ghost" id="btn-theme-toggle" title="Ganti Tema (Gelap/Terang)">
+        ☀️ Tema
       </button>
       <a href="/logout" class="btn btn-ghost">Keluar</a>
     </div>
@@ -259,5 +267,26 @@
 <script src="/assets/js/terminal.js?v=1.6.0"></script>
 <script src="/assets/js/filemanager.js?v=1.6.0"></script>
 <script src="/assets/js/app.js?v=1.6.0"></script>
+<script>
+  // Logika Toggle Tema
+  const themeBtn = document.getElementById('btn-theme-toggle');
+  
+  function updateThemeButton() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    themeBtn.innerHTML = isLight ? '🌙 Gelap' : '☀️ Terang';
+  }
+  
+  themeBtn.addEventListener('click', () => {
+    let currentTheme = document.documentElement.getAttribute('data-theme');
+    let targetTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    document.documentElement.setAttribute('data-theme', targetTheme);
+    localStorage.setItem('theme', targetTheme);
+    updateThemeButton();
+  });
+  
+  // Set inisial teks tombol saat dimuat
+  updateThemeButton();
+</script>
 </body>
 </html>

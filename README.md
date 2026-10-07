@@ -85,15 +85,25 @@ Aplikasi ini mengusung tampilan gaya **NetSupport School Grid Wall** yang mewah,
 
 ---
 
-### 2. Pemasangan Client Agent di PC Target (Windows Client)
+### 2. Pemasangan Client Agent di PC Target
 
-1. **Buka PowerShell Administrator** di PC Client.
-2. Jalankan perintah instalasi otomatis berikut (ganti IP dengan IP Server Admin Anda):
+Anda bisa memasang Agent di PC Client secara instan langsung dari GitHub. Pastikan PC terhubung ke internet saat instalasi. (Secara default akan terhubung ke `https://remote.nusambasingaparna.com`).
+
+**A. Untuk PC Client Windows:**
+1. Buka **PowerShell** sebagai Administrator (`Run as Administrator`).
+2. Jalankan perintah instalasi otomatis berikut:
    ```powershell
-   Set-ExecutionPolicy Bypass -Scope Process -Force
-   & "\\192.168.1.33\agent\install-windows.ps1" -ServerUrl "http://192.168.1.33:3000"
+   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-windows.ps1" -OutFile "$env:TEMP\install-windows.ps1"; & "$env:TEMP\install-windows.ps1"
    ```
-   *Skrip akan otomatis memasang agent, mengkonfigurasi TightVNC Server, membuka port firewall, dan mendaftarkan Scheduled Task yang berjalan otomatis saat pengguna logon.*
+   *Skrip akan otomatis mengunduh agent, memasang Node.js (jika belum ada), memasang VNC Server, dan menambahkannya ke Startup Windows secara sembunyi-sembunyi.*
+
+**B. Untuk PC Client Ubuntu/Linux:**
+1. Buka **Terminal** di PC Client.
+2. Jalankan perintah instalasi otomatis berikut:
+   ```bash
+   curl -sL "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-ubuntu.sh" | sudo bash
+   ```
+   *Skrip akan otomatis menginstal paket yang dibutuhkan (Node.js, x11vnc, xinput), mengkonfigurasi server VNC, dan menjalankannya sebagai Systemd Service.*
 
 ---
 

@@ -170,13 +170,13 @@ function showNotification(message) {
     const script = `
     USER_PID=$(pgrep -f "gnome-session|xfce4-session|lxsession|mate-session|gnome-shell" | head -n 1)
     if [ -n "$USER_PID" ]; then
+      ACTIVE_USER=$(ps -o ruser= -p $USER_PID | awk '{print $1}')
       export DISPLAY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^DISPLAY=' | cut -d= -f2)
       export XAUTHORITY=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^XAUTHORITY=' | cut -d= -f2)
+      export DBUS_SESSION_BUS_ADDRESS=$(cat /proc/$USER_PID/environ 2>/dev/null | tr '\\0' '\\n' | grep -m 1 '^DBUS_SESSION_BUS_ADDRESS=' | cut -d= -f2)
+      
+      sudo -u "$ACTIVE_USER" bash -c "DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS notify-send \\"Lab Manager Admin\\" \\"${safe}\\" --icon=computer 2>/dev/null || DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY zenity --info --title=\\"Lab Manager Admin\\" --text=\\"${safe}\\" 2>/dev/null" &
     fi
-    [ -z "$DISPLAY" ] && export DISPLAY=:0
-    [ -z "$XAUTHORITY" ] && export XAUTHORITY=$(find /run/user -name "Xauthority" -print -quit 2>/dev/null || find /home -maxdepth 2 -name ".Xauthority" -print -quit 2>/dev/null)
-    
-    notify-send "Lab Manager Admin" "${safe}" --icon=computer 2>/dev/null || zenity --info --title="Lab Manager Admin" --text="${safe}" 2>/dev/null &
     `;
     exec(script, { shell: '/bin/bash' });
   }

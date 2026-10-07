@@ -64,6 +64,13 @@ function setupAgentHandlers(agentIO, adminIO) {
     // ─── DISCONNECT ───────────────────────────────────────────────
     socket.on('disconnect', (reason) => {
       if (socket.pcId) {
+        const activeSocket = agentSockets.get(socket.pcId);
+        if (activeSocket && activeSocket.id !== socket.id) {
+          // Ghost socket disconnected, ignore so it doesn't break the new connection
+          console.log(`[-] Ghost agent disconnected: ${socket.pcId} (${reason})`);
+          return;
+        }
+
         agentSockets.remove(socket.pcId);
         const pc = pcRegistry.getPC(socket.pcId);
         pcRegistry.markOffline(socket.pcId);

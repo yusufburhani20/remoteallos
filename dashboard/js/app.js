@@ -583,6 +583,46 @@ document.getElementById('vnc-paste')?.addEventListener('click', () => {
   }
 });
 
+// ─── MOBILE KEYBOARD VNC ──────────────────────────────────────────────
+const mkbBtn = document.getElementById('vnc-mobile-kb-btn');
+const mkbInput = document.getElementById('vnc-mobile-keyboard');
+
+if (mkbBtn && mkbInput) {
+  mkbBtn.addEventListener('click', () => {
+    mkbInput.focus();
+    showToast('Keyboard mobile aktif. Silakan mengetik...', 'info');
+  });
+
+  mkbInput.addEventListener('input', (e) => {
+    if (!state.vncRfb) return;
+    const char = e.data;
+    if (!char) return;
+    const keysym = char.charCodeAt(char.length - 1);
+    state.vncRfb.sendKey(keysym, 1);
+    state.vncRfb.sendKey(keysym, 0);
+  });
+
+  mkbInput.addEventListener('keydown', (e) => {
+    if (!state.vncRfb) return;
+    let keysym = null;
+    
+    if (e.key === 'Backspace') keysym = 0xFF08;
+    else if (e.key === 'Enter') keysym = 0xFF0D;
+    else if (e.key === 'Tab') keysym = 0xFF09;
+    else if (e.key === 'Escape') keysym = 0xFF1B;
+    else if (e.key === 'ArrowUp') keysym = 0xFF52;
+    else if (e.key === 'ArrowDown') keysym = 0xFF54;
+    else if (e.key === 'ArrowLeft') keysym = 0xFF51;
+    else if (e.key === 'ArrowRight') keysym = 0xFF53;
+
+    if (keysym !== null) {
+      state.vncRfb.sendKey(keysym, 1);
+      state.vncRfb.sendKey(keysym, 0);
+      e.preventDefault();
+    }
+  });
+}
+
 // Intercept Ctrl+V paste event when Remote Desktop tab is active
 window.addEventListener('paste', (e) => {
   const remoteTab = document.getElementById('tab-remote');

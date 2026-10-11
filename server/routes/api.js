@@ -66,6 +66,37 @@ router.post('/pcs/clear-offline', (req, res) => {
   res.json({ success: true, count, message: `${count} PC offline berhasil dibersihkan` });
 });
 
+// POST execute command on PC agent
+const agentSockets = require('../store/agentSockets');
+router.post('/pcs/:pcId/exec', (req, res) => {
+  const pcId = req.params.pcId.toUpperCase();
+  const pc = pcRegistry.getPC(pcId);
+  if (!pc || pc.status !== 'online') return res.status(404).json({ error: 'PC not found or offline' });
+  const agentSocket = agentSockets.get(pcId);
+  if (!agentSocket) return res.status(404).json({ error: 'Agent socket not found' });
+
+  const requestId = 'api-' + Date.now();
+  const command = req.body.command || req.query.command;
+  if (!command) return res.status(400).json({ error: 'Command is required' });
+
+  const timeout = setTimeout(() => {
+    agentSocket.off('shell_output', onOutput);
+    res.status(504).json({ error: 'Timeout waiting for agent shell output' });
+  }, 10000);
+
+  const onOutput = (data) => {
+    if (data.requestId === requestId) {
+      clearTimeout(timeout);
+      agentSocket.off('shell_output', onOutput);
+      res.json(data);
+    }
+  };
+
+  agentSocket.on('shell_output', onOutput);
+  agentSocket.emit('shell_exec', { command, requestId });
+});
+
+
 // GET stats summary
 router.get('/stats', (req, res) => {
   res.json(pcRegistry.getStats());

@@ -90,19 +90,41 @@ function setupAdminHandlers(adminIO, agentIO) {
           });
         });
 
-        console.log(`[WOL] Magic packet sent for ${pc.hostname} (${pc.mac}) to targets: [${targets.join(', ')}]`);
+        // 2. Peer-Assisted WOL: Minta PC lab lain yang sedang ONLINE untuk menembak WOL secara lokal di dalam LAN
+        let relayedVia = null;
+        const targetSubnet = pc.ip ? pc.ip.split('.').slice(0, 3).join('.') : null;
+        const onlinePeers = Array.from(pcRegistry.getAllPCs()).filter(p => 
+          p.status === 'online' && p.id !== pcId && p.socketId
+        );
+        const sameSubnetPeer = onlinePeers.find(p => p.ip && targetSubnet && p.ip.startsWith(targetSubnet + '.'));
+        const relayPeer = sameSubnetPeer || onlinePeers[0];
+
+        if (relayPeer) {
+          const peerSocket = agentIO.sockets.get(relayPeer.socketId);
+          if (peerSocket) {
+            const subnetBrd = targetSubnet ? `${targetSubnet}.255` : '255.255.255.255';
+            peerSocket.emit('relay_wol', { mac: pc.mac, broadcastIp: subnetBrd });
+            relayedVia = relayPeer.hostname;
+            console.log(`[WOL] Relayed magic packet via online peer: ${relayPeer.hostname} (${relayPeer.ip})`);
+          }
+        }
+
+        const relayMsg = relayedVia ? ` + Relay via ${relayedVia}` : '';
+        console.log(`[WOL] Magic packet sent for ${pc.hostname} (${pc.mac}) to targets: [${targets.join(', ')}]${relayMsg}`);
         socket.emit('wol_result', {
           success: true,
           pcId,
           hostname: pc.hostname,
           mac: pc.mac,
           targets,
-          message: `Magic Packet terkirim ke MAC: ${pc.mac} (${targets.join(', ')})`,
+          relayedVia,
+          message: `Magic Packet terkirim ke MAC: ${pc.mac}${relayMsg}`,
         });
       } else {
         socket.emit('error_msg', { message: `MAC Address tidak ditemukan untuk PC ini (${pcId}). PC harus pernah online sebelumnya.`, pcId });
       }
     });
+
 
 
     // ─── BROADCAST: kirim ke SEMUA PC agent ──────────────────────

@@ -143,6 +143,32 @@ function connect() {
     showNotification(message);
   });
 
+  // ─── RELAY WAKE ON LAN (Broadcast Locally in LAN) ───────────────────────────
+  socket.on('relay_wol', ({ mac, broadcastIp }) => {
+    try {
+      const dgram = require('dgram');
+      const client = dgram.createSocket('udp4');
+      client.bind(() => {
+        client.setBroadcast(true);
+        const cleanMac = (mac || '').replace(/[:-]/g, '');
+        const macBytes = Buffer.from(cleanMac, 'hex');
+        const magicPacket = Buffer.concat([Buffer.alloc(6, 0xff), ...Array(16).fill(macBytes)]);
+        const targets = ['255.255.255.255'];
+        if (broadcastIp && !targets.includes(broadcastIp)) targets.push(broadcastIp);
+        targets.forEach(target => {
+          [9, 7].forEach(port => {
+            client.send(magicPacket, 0, magicPacket.length, port, target, () => {});
+          });
+        });
+        setTimeout(() => { try { client.close(); } catch (_) {} }, 1000);
+      });
+      console.log(`[WOL Relay] Magic packet broadcasted locally for MAC ${mac}`);
+    } catch (err) {
+      console.error('[WOL Relay] Error:', err.message);
+    }
+  });
+
+
   // ─── REVERSE TUNNEL VNC (RAW WEBSOCKET) ─────────────────────────────────────
   let localTcp = null;
   let agentWs = null;

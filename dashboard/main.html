@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab Remote Manager — Dashboard</title>
   <meta name="description" content="Dashboard manajemen komputer lab">
-  <link rel="stylesheet" href="/assets/css/style.css?v=1.6.0">
+  <link rel="stylesheet" href="/assets/css/style.css?v=1.6.1">
   <script>
     // Terapkan tema sebelum halaman selesai dimuat agar tidak ada kedipan
     const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -307,10 +307,10 @@
 </div>
 
 <!-- ══════════ SCRIPTS ══════════ -->
-<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-<script src="/assets/js/terminal.js?v=1.6.0"></script>
-<script src="/assets/js/filemanager.js?v=1.6.0"></script>
-<script src="/assets/js/app.js?v=1.6.0"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/assets/js/terminal.js?v=1.6.1"></script>
+<script src="/assets/js/filemanager.js?v=1.6.1"></script>
+<script src="/assets/js/app.js?v=1.6.1"></script>
 <script>
   // Logika Toggle Tema
   const themeBtn = document.getElementById('btn-theme-toggle');

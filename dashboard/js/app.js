@@ -43,9 +43,13 @@ socket.on('connect_error', () => {
 });
 
 // Initial data from server
-socket.on('init', ({ pcs, stats }) => {
+socket.on('init', ({ pcs = [], stats = {} } = {}) => {
   state.pcs = {};
-  for (const pc of pcs) state.pcs[pc.id] = pc;
+  if (Array.isArray(pcs)) {
+    for (const pc of pcs) {
+      if (pc && pc.id) state.pcs[pc.id] = pc;
+    }
+  }
   updateStats(stats);
   renderGrid();
 });
@@ -134,9 +138,13 @@ socket.on('screenshot_result', (data) => {
 
 // ─── Stats ──────────────────────────────────────────────────────────────────
 function updateStats(stats) {
-  document.getElementById('stat-total').textContent   = stats.total;
-  document.getElementById('stat-online').textContent  = stats.online;
-  document.getElementById('stat-offline').textContent = stats.offline;
+  if (!stats) return;
+  const elTotal = document.getElementById('stat-total');
+  const elOnline = document.getElementById('stat-online');
+  const elOffline = document.getElementById('stat-offline');
+  if (elTotal) elTotal.textContent = stats.total ?? 0;
+  if (elOnline) elOnline.textContent = stats.online ?? 0;
+  if (elOffline) elOffline.textContent = stats.offline ?? 0;
 }
 
 // ─── Grid Rendering ──────────────────────────────────────────────────────────

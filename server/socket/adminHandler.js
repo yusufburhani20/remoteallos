@@ -63,17 +63,47 @@ function setupAdminHandlers(adminIO, agentIO) {
     socket.on('wake_pc', ({ pcId }) => {
       const pc = pcRegistry.getPC(pcId);
       if (pc && pc.mac) {
-        wol.wake(pc.mac, { address: '255.255.255.255' }, (err) => {
-          if (err) {
-            socket.emit('error_msg', { message: `WOL Gagal: ${err.message}`, pcId });
-          } else {
-            console.log(`[WOL] Magic packet sent to ${pc.mac} (${pcId})`);
-          }
+        // Kumpulkan target broadcast: global, subnet broadcast, dan direct IP
+        const targets = ['255.255.255.255'];
+        if (pc.ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(pc.ip)) {
+          const parts = pc.ip.split('.');
+          const subnetBrd = `${parts[0]}.${parts[1]}.${parts[2]}.255`;
+          if (!targets.includes(subnetBrd)) targets.push(subnetBrd);
+          if (!targets.includes(pc.ip)) targets.push(pc.ip);
+        }
+
+        // Kirim Magic Packet ke setiap target pada port 9 dan port 7
+        const ports = [9, 7];
+        let sentCount = 0;
+        let lastErr = null;
+
+        targets.forEach(addr => {
+          ports.forEach(port => {
+            wol.wake(pc.mac, { address: addr, port: port }, (err) => {
+              if (err) {
+                lastErr = err;
+                console.error(`[WOL] Error sending to ${addr}:${port} -> ${err.message}`);
+              } else {
+                sentCount++;
+              }
+            });
+          });
+        });
+
+        console.log(`[WOL] Magic packet sent for ${pc.hostname} (${pc.mac}) to targets: [${targets.join(', ')}]`);
+        socket.emit('wol_result', {
+          success: true,
+          pcId,
+          hostname: pc.hostname,
+          mac: pc.mac,
+          targets,
+          message: `Magic Packet terkirim ke MAC: ${pc.mac} (${targets.join(', ')})`,
         });
       } else {
-        socket.emit('error_msg', { message: `MAC Address tidak ditemukan untuk PC ini. PC harus pernah online sebelumnya.`, pcId });
+        socket.emit('error_msg', { message: `MAC Address tidak ditemukan untuk PC ini (${pcId}). PC harus pernah online sebelumnya.`, pcId });
       }
     });
+
 
     // ─── BROADCAST: kirim ke SEMUA PC agent ──────────────────────
     socket.on('broadcast_power', ({ action }) => {

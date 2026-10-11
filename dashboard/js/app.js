@@ -90,6 +90,12 @@ socket.on('error_msg', ({ message }) => {
   showToast(message, 'error');
 });
 
+// WOL result from server
+socket.on('wol_result', (data) => {
+  showToast(`⚡ ${data.message}`, 'success');
+});
+
+
 // Screenshot result
 socket.on('screenshot_result', (data) => {
   if (data.error) {
@@ -309,8 +315,18 @@ function updatePanelStatus(pc) {
   const dot = document.getElementById('panel-status-dot');
   dot.classList.toggle('online', pc.status === 'online');
   const btnWol = document.getElementById('btn-wol');
-  if (btnWol) btnWol.style.display = pc.status === 'offline' ? 'inline-flex' : 'none';
+  if (btnWol) {
+    btnWol.style.display = 'inline-flex';
+    if (pc.status === 'online') {
+      btnWol.innerHTML = '⚡ Test WOL';
+      btnWol.title = 'Kirim Magic Packet (Uji Coba)';
+    } else {
+      btnWol.innerHTML = '⚡ Wake On LAN';
+      btnWol.title = 'Hidupkan PC via Wake on LAN (WOL)';
+    }
+  }
 }
+
 
 function updateInfoTab(pc) {
   const m = pc.metrics;
@@ -447,9 +463,14 @@ document.getElementById('btn-shutdown').addEventListener('click', () => {
 });
 document.getElementById('btn-wol')?.addEventListener('click', () => {
   if (!state.selectedPcId) return;
+  const pc = state.pcs[state.selectedPcId];
+  if (!pc?.mac) {
+    return showToast('MAC Address belum tercatat untuk PC ini. PC harus pernah online sebelumnya.', 'warning');
+  }
   socket.emit('wake_pc', { pcId: state.selectedPcId });
-  showToast(`⚡ Mengirim Magic Packet (WOL) ke ${state.pcs[state.selectedPcId]?.hostname}...`, 'success');
+  showToast(`⚡ Mengirim Magic Packet (WOL) ke ${pc.hostname} [${pc.mac}]...`, 'info');
 });
+
 
 // ─── META MODAL EVENT ────────────────────────────────────────────
 const btnEditMeta = document.getElementById('btn-edit-meta');

@@ -44,6 +44,9 @@
       <button class="btn btn-ghost" id="btn-broadcast" title="Kirim pesan ke semua PC">
         📢 Broadcast
       </button>
+      <button class="btn btn-ghost" id="btn-clear-offline" title="Bersihkan semua sesi PC yang Offline" style="display:flex; align-items:center; gap:6px;">
+        <span>🧹</span><span>Bersihkan<span class="hide-mobile"> Offline</span></span>
+      </button>
       <button class="btn btn-danger" id="btn-shutdown-all" title="Matikan semua PC" style="display:flex; align-items:center; gap:6px;">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
         <span>Shutdown<span class="hide-mobile"> Semua</span></span>
@@ -116,6 +119,9 @@
         <button class="btn btn-danger" id="btn-shutdown" title="Matikan PC" style="display:flex; align-items:center; gap:6px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
           Shutdown
+        </button>
+        <button class="btn btn-danger" id="btn-delete-pc" title="Hapus sesi PC ini dari server" style="display:none; align-items:center; gap:6px;">
+          <span>🗑️</span><span>Hapus Sesi</span>
         </button>
       </div>
 

@@ -95,6 +95,25 @@ socket.on('wol_result', (data) => {
   showToast(`⚡ ${data.message}`, 'success');
 });
 
+// PC deleted from server
+socket.on('pc_deleted', ({ pcId }) => {
+  const pc = state.pcs[pcId];
+  const name = pc?.hostname || pcId;
+  delete state.pcs[pcId];
+  if (state.selectedPcId === pcId) closePanel();
+  renderGrid();
+  showToast(`🗑️ Sesi PC "${name}" berhasil dihapus`, 'info');
+});
+
+// All offline PCs cleared
+socket.on('pcs_cleared', ({ count, pcs }) => {
+  state.pcs = {};
+  for (const pc of pcs) state.pcs[pc.id] = pc;
+  if (state.selectedPcId && !state.pcs[state.selectedPcId]) closePanel();
+  renderGrid();
+  showToast(`🧹 ${count} sesi PC offline berhasil dibersihkan`, 'success');
+});
+
 
 // Screenshot result
 socket.on('screenshot_result', (data) => {
@@ -180,6 +199,7 @@ function createPcCard(pc) {
     : `<div class="pc-thumb-placeholder"><span>🖥️</span><span>${pc.status === 'online' ? 'Memuat Layar...' : 'Offline'}</span></div>`;
 
   const displayName = pc.alias ? pc.alias : pc.hostname;
+  const isOffline = pc.status === 'offline';
 
   card.innerHTML = `
     <div class="pc-card-top">
@@ -188,6 +208,7 @@ function createPcCard(pc) {
         <div class="pc-status-dot"></div>
         <span style="font-size:11px;">${osIcon}</span>
       </div>
+      ${isOffline ? `<button class="btn-card-del" title="Hapus sesi offline ${displayName}">🗑️</button>` : ''}
     </div>
     <div class="pc-thumb-box" id="thumb-box-${pc.id}">
       ${thumbHtml}
@@ -209,6 +230,16 @@ function createPcCard(pc) {
       </div>
     </div>
   `;
+
+  const btnDel = card.querySelector('.btn-card-del');
+  if (btnDel) {
+    btnDel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Hapus sesi offline "${displayName}" dari server?`)) {
+        socket.emit('delete_pc', { pcId: pc.id });
+      }
+    });
+  }
 
   card.addEventListener('click', () => selectPC(pc.id));
   return card;
@@ -324,6 +355,10 @@ function updatePanelStatus(pc) {
       btnWol.innerHTML = '⚡ Wake On LAN';
       btnWol.title = 'Hidupkan PC via Wake on LAN (WOL)';
     }
+  }
+  const btnDeletePc = document.getElementById('btn-delete-pc');
+  if (btnDeletePc) {
+    btnDeletePc.style.display = pc.status === 'offline' ? 'inline-flex' : 'none';
   }
 }
 
@@ -471,6 +506,15 @@ document.getElementById('btn-wol')?.addEventListener('click', () => {
   showToast(`⚡ Mengirim Magic Packet (WOL) ke ${pc.hostname} [${pc.mac}]...`, 'info');
 });
 
+document.getElementById('btn-delete-pc')?.addEventListener('click', () => {
+  if (!state.selectedPcId) return;
+  const pc = state.pcs[state.selectedPcId];
+  if (!pc) return;
+  const name = pc.alias || pc.hostname;
+  if (!confirm(`Hapus sesi offline "${name}" dari server?`)) return;
+  socket.emit('delete_pc', { pcId: state.selectedPcId });
+});
+
 
 // ─── META MODAL EVENT ────────────────────────────────────────────
 const btnEditMeta = document.getElementById('btn-edit-meta');
@@ -516,6 +560,14 @@ document.getElementById('btn-shutdown-all').addEventListener('click', () => {
   socket.emit('broadcast_power', { action: 'shutdown' });
   showToast(`⏻ Perintah shutdown dikirim ke ${online} PC`, 'warning');
 });
+
+document.getElementById('btn-clear-offline')?.addEventListener('click', () => {
+  const offlineCount = Object.values(state.pcs).filter(p => p.status === 'offline').length;
+  if (!offlineCount) return showToast('Tidak ada PC offline yang perlu dibersihkan', 'info');
+  if (!confirm(`Hapus semua ${offlineCount} sesi PC offline dari dashboard? (Sesi PC online tetap aman)`)) return;
+  socket.emit('clear_offline_pcs');
+});
+
 
 // ─── Broadcast Modal ──────────────────────────────────────────────────────────
 const broadcastModal = document.getElementById('broadcast-modal');

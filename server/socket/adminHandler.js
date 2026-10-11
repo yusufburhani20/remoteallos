@@ -143,6 +143,27 @@ function setupAdminHandlers(adminIO, agentIO) {
       adminIO.emit('pc_registered', pcRegistry.getPC(pcId));
     });
 
+    // ─── DELETE PC (SINGLE OFFLINE PC) ────────────────────────────
+    socket.on('delete_pc', ({ pcId }) => {
+      const pc = pcRegistry.getPC(pcId);
+      if (!pc) return socket.emit('error_msg', { message: 'PC tidak ditemukan' });
+      if (pc.status === 'online') {
+        return socket.emit('error_msg', { message: `PC "${pc.hostname}" sedang ONLINE, tidak dapat dihapus.` });
+      }
+      pcRegistry.deletePC(pcId);
+      adminIO.emit('pc_deleted', { pcId });
+      adminIO.emit('stats_update', pcRegistry.getStats());
+      console.log(`[Registry] Deleted offline PC: ${pcId}`);
+    });
+
+    // ─── CLEAR ALL OFFLINE PCS ────────────────────────────────────
+    socket.on('clear_offline_pcs', () => {
+      const count = pcRegistry.clearOfflinePCs();
+      adminIO.emit('pcs_cleared', { count, pcs: pcRegistry.getAllPCs() });
+      adminIO.emit('stats_update', pcRegistry.getStats());
+      console.log(`[Registry] Cleared ${count} offline PCs`);
+    });
+
     // ─── BULK SCREENSHOT: request screenshot semua PC ────────────
     socket.on('broadcast_screenshot', () => {
       const requestId = Date.now().toString();
@@ -153,6 +174,7 @@ function setupAdminHandlers(adminIO, agentIO) {
     socket.on('disconnect', () => {
       console.log(`[-] Admin disconnected: ${socket.id}`);
     });
+
   });
 }
 

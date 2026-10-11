@@ -48,6 +48,24 @@ router.all('/pcs/:pcId/wake', (req, res) => {
 });
 
 
+// DELETE single offline PC
+router.delete('/pcs/:pcId', (req, res) => {
+  const pcId = req.params.pcId.toUpperCase();
+  const pc = pcRegistry.getPC(pcId);
+  if (!pc) return res.status(404).json({ error: 'PC tidak ditemukan' });
+  if (pc.status === 'online') {
+    return res.status(400).json({ error: 'PC sedang online, tidak dapat dihapus' });
+  }
+  pcRegistry.deletePC(pcId);
+  res.json({ success: true, message: `PC ${pcId} berhasil dihapus` });
+});
+
+// POST clear all offline PCs
+router.post('/pcs/clear-offline', (req, res) => {
+  const count = pcRegistry.clearOfflinePCs();
+  res.json({ success: true, count, message: `${count} PC offline berhasil dibersihkan` });
+});
+
 // GET stats summary
 router.get('/stats', (req, res) => {
   res.json(pcRegistry.getStats());
@@ -61,5 +79,6 @@ router.get('/info', (req, res) => {
     nodeVersion: process.version,
   });
 });
+
 
 module.exports = router;

@@ -41,8 +41,10 @@ function startThumbnailWorker() {
     const captureLinux = () => {
       const tmpPath = path.join(os.tmpdir(), 'lab_thumb.jpg');
       const shellCmd = `
-        AUTH=$(find /run/user /var/run/gdm3 /home /root -name Xauthority 2>/dev/null | head -n 1)
-        DISP=$(w -h 2>/dev/null | awk '{print $2}' | grep -E '^:[0-9]' | head -n 1)
+        AUTH=$(ps aux 2>/dev/null | grep -oE '\-auth [^ ]+' | awk '{print $2}' | head -n 1)
+        [ -z "$AUTH" ] && AUTH=$(find /run/user /var/run/gdm3 /home /root -name "*authority*" 2>/dev/null | head -n 1)
+        DISP=$(ls /tmp/.X11-unix 2>/dev/null | tr 'X' ':' | head -n 1)
+        [ -z "$DISP" ] && DISP=$(w -h 2>/dev/null | awk '{print $2}' | grep -E '^:[0-9]' | head -n 1)
         [ -z "$DISP" ] && DISP=":0"
         XAUTHORITY="$AUTH" DISPLAY="$DISP" scrot -z -q 25 -o "${tmpPath}" 2>/dev/null && base64 -w 0 "${tmpPath}"
       `;
@@ -50,10 +52,11 @@ function startThumbnailWorker() {
         if (!err && stdout && stdout.length > 100) {
           latestThumbnail = stdout.trim();
         }
-        setTimeout(captureLinux, 8000); // Increased interval to 8 seconds
+        setTimeout(captureLinux, 6000); // 6 seconds interval
       });
     };
     captureLinux();
+
   }
 }
 

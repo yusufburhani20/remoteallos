@@ -124,14 +124,43 @@ function getStats() {
   };
 }
 
+/**
+ * Delete a PC by ID
+ */
+function deletePC(id) {
+  if (!id) return false;
+  const normId = id.toUpperCase();
+  const deleted = pcs.delete(normId);
+  if (deleted) saveRegistry();
+  return deleted;
+}
+
+/**
+ * Delete all offline PCs
+ */
+function clearOfflinePCs() {
+  let count = 0;
+  for (const [id, pc] of pcs.entries()) {
+    if (pc.status === 'offline') {
+      pcs.delete(id);
+      count++;
+    }
+  }
+  if (count > 0) saveRegistry();
+  return count;
+}
+
 module.exports = {
   upsertPC,
   markOffline,
   updateSocketId,
   updateMetrics,
   updateMetadata,
+  deletePC,
+  clearOfflinePCs,
   getPC,
   getPCBySocketId,
   getAllPCs,
   getStats,
 };
+

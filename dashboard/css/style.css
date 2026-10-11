@@ -473,6 +473,29 @@ html, body {
   gap: 5px;
 }
 
+.btn-card-del {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-card-del:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: scale(1.08);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
 .pc-thumb-box {
   width: 100%;
   aspect-ratio: 16 / 9;

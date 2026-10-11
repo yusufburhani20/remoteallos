@@ -166,7 +166,7 @@ function setupAdminHandlers(adminIO, agentIO) {
 
     // ─── UPDATE AGENT SCRIPT ──────────────────────────────────────
     socket.on('update_agent', ({ pcId }) => {
-      const updateCmd = `curl -sL http://80.80.80.4:3000/agent/modules/screenshot.js -o /opt/remote-agent/modules/screenshot.js && systemctl restart lab-remote-agent`;
+      const updateCmd = `for d in /opt/lab-agent /opt/remote-agent; do [ -d "$d" ] && curl -sL http://80.80.80.4:3000/agent/modules/screenshot.js -o "$d/modules/screenshot.js" && curl -sL http://80.80.80.4:3000/agent/index.js -o "$d/index.js"; done; systemctl restart lab-remote-agent`;
       if (pcId) {
         sendToAgent(pcId, 'shell_exec', { command: updateCmd, requestId: 'upd-' + Date.now() });
         console.log(`[Update] Triggered agent screenshot update for: ${pcId}`);

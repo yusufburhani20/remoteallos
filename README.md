@@ -99,11 +99,16 @@ Anda bisa memasang Agent di PC Client secara instan langsung dari GitHub. Pastik
 
 **B. Untuk PC Client Ubuntu/Linux:**
 1. Buka **Terminal** di PC Client.
-2. Jalankan perintah instalasi otomatis berikut:
+2. Jalankan perintah instalasi otomatis (dapat menentukan nama PC dan IP server lokal):
    ```bash
-   curl -sL "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-ubuntu.sh" | sudo bash
+   curl -sL "http://<IP_SERVER>:3000/agent/install-ubuntu.sh" | sudo PC_NAME="pc-lab-01" bash
    ```
-   *Skrip akan otomatis menginstal paket yang dibutuhkan (Node.js, x11vnc, xinput), mengkonfigurasi server VNC, dan menjalankannya sebagai Systemd Service.*
+   *Atau langsung dari GitHub:*
+   ```bash
+   curl -sL "https://raw.githubusercontent.com/yusufburhani20/remoteallos/main/agent/install-ubuntu.sh" | sudo PC_NAME="pc-lab-01" SERVER_URL="http://<IP_SERVER>:3000" bash
+   ```
+   *Skrip akan otomatis menonaktifkan Wayland (beralih ke Xorg), memasang paket yang dibutuhkan (Node.js, x11vnc, xinput, scrot), mengkonfigurasi server VNC dengan `-rfbport 5900` dan `-noshm`, serta menjalankannya sebagai Systemd Service.*
+   *(Setelah instalasi, disarankan `sudo reboot` sekali agar sesi Xorg aktif sempurna).*
 
 ---
 

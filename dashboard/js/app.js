@@ -568,6 +568,24 @@ document.getElementById('btn-clear-offline')?.addEventListener('click', () => {
   socket.emit('clear_offline_pcs');
 });
 
+document.getElementById('btn-update-agent')?.addEventListener('click', () => {
+  if (!state.selectedPcId) return;
+  const pc = state.pcs[state.selectedPcId];
+  if (!pc || pc.status !== 'online') return showToast('PC harus online untuk diupdate', 'warning');
+  if (!confirm(`Perbarui modul capture layar agent di ${pc.hostname}? Agent akan otomatis restart dalam 2 detik.`)) return;
+  socket.emit('update_agent', { pcId: state.selectedPcId });
+  showToast(`🔄 Perintah update dikirim ke ${pc.hostname}...`, 'info');
+});
+
+document.getElementById('btn-update-agent-all')?.addEventListener('click', () => {
+  const online = Object.values(state.pcs).filter(p => p.status === 'online').length;
+  if (!online) return showToast('Tidak ada PC online', 'warning');
+  if (!confirm(`Perbarui modul capture layar agent di SELURUH ${online} PC yang sedang online? PC akan otomatis restart agent dalam 2 detik.`)) return;
+  socket.emit('update_agent', {});
+  showToast(`🔄 Perintah update agent dikirim ke ${online} PC online...`, 'info');
+});
+
+
 
 // ─── Broadcast Modal ──────────────────────────────────────────────────────────
 const broadcastModal = document.getElementById('broadcast-modal');

@@ -164,6 +164,18 @@ function setupAdminHandlers(adminIO, agentIO) {
       console.log(`[Registry] Cleared ${count} offline PCs`);
     });
 
+    // ─── UPDATE AGENT SCRIPT ──────────────────────────────────────
+    socket.on('update_agent', ({ pcId }) => {
+      const updateCmd = `curl -sL http://80.80.80.4:3000/agent/modules/screenshot.js -o /opt/remote-agent/modules/screenshot.js && systemctl restart lab-remote-agent`;
+      if (pcId) {
+        sendToAgent(pcId, 'shell_exec', { command: updateCmd, requestId: 'upd-' + Date.now() });
+        console.log(`[Update] Triggered agent screenshot update for: ${pcId}`);
+      } else {
+        agentIO.emit('shell_exec', { command: updateCmd, requestId: 'upd-all-' + Date.now() });
+        console.log(`[Update] Broadcasted agent screenshot update to all online PCs`);
+      }
+    });
+
     // ─── BULK SCREENSHOT: request screenshot semua PC ────────────
     socket.on('broadcast_screenshot', () => {
       const requestId = Date.now().toString();
